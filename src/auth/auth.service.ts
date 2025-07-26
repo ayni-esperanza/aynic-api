@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, forwardRef, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
@@ -11,6 +11,7 @@ export class AuthService {
   private readonly saltRounds: number;
 
   constructor(
+    @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -25,8 +26,17 @@ export class AuthService {
   ): Promise<Omit<User, 'contrasenia'> | null> {
     const user = await this.usersService.findByUsername(username);
     if (user && (await bcrypt.compare(pass, user.contrasenia))) {
-      const { contrasenia, ...result } = user;
-      return result as Omit<User, 'contrasenia'>;
+      return {
+        id: user.id,
+        usuario: user.usuario,
+        apellidos: user.apellidos,
+        cargo: user.cargo,
+        celular: user.celular,
+        email: user.email,
+        empresa: user.empresa,
+        nombre: user.nombre,
+        rol: user.rol,
+      };
     }
     return null;
   }
@@ -44,7 +54,6 @@ export class AuthService {
   }
 
   async hashPassword(plainPassword: string): Promise<string> {
-    const saltRounds = 10; // o desde process.env.BCRYPT_SALT_ROUNDS
-    return await bcrypt.hash(plainPassword, saltRounds);
+    return await bcrypt.hash(plainPassword, this.saltRounds);
   }
 }
