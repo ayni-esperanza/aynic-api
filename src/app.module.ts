@@ -15,7 +15,7 @@ import { RecordStatusHistory } from './record-status-history/entities/record-sta
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // Puedes usar variables de entorno en todo el proyecto
+      isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -29,7 +29,7 @@ import { RecordStatusHistory } from './record-status-history/entities/record-sta
         database: config.get('DB_DATABASE'),
         entities: [User, Record, RecordStatusHistory],
         synchronize: true, // solo en desarrollo
-        autoLoadEntities: true, // si usas TypeORM con módulos
+        autoLoadEntities: true,
       }),
     }),
     UsersModule,

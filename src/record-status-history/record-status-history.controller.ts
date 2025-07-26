@@ -1,11 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { RecordStatusHistoryService } from './record-status-history.service';
 import { CreateRecordStatusHistoryDto } from './dto/create-record-status-history.dto';
 import { UpdateRecordStatusHistoryDto } from './dto/update-record-status-history.dto';
 
 @Controller('record-status-history')
 export class RecordStatusHistoryController {
-  constructor(private readonly recordStatusHistoryService: RecordStatusHistoryService) {}
+  constructor(
+    private readonly recordStatusHistoryService: RecordStatusHistoryService,
+  ) {}
 
   @Post()
   create(@Body() createRecordStatusHistoryDto: CreateRecordStatusHistoryDto) {
@@ -23,8 +33,14 @@ export class RecordStatusHistoryController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRecordStatusHistoryDto: UpdateRecordStatusHistoryDto) {
-    return this.recordStatusHistoryService.update(+id, updateRecordStatusHistoryDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateRecordStatusHistoryDto: UpdateRecordStatusHistoryDto,
+  ) {
+    return this.recordStatusHistoryService.update(
+      +id,
+      updateRecordStatusHistoryDto,
+    );
   }
 
   @Delete(':id')

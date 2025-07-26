@@ -16,7 +16,10 @@ export class RecordStatusHistoryService {
     return `This action returns a #${id} recordStatusHistory`;
   }
 
-  update(id: number, updateRecordStatusHistoryDto: UpdateRecordStatusHistoryDto) {
+  update(
+    id: number,
+    updateRecordStatusHistoryDto: UpdateRecordStatusHistoryDto,
+  ) {
     return `This action updates a #${id} recordStatusHistory`;
   }
 
