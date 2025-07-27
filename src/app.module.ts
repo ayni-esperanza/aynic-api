@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
 
 import { UsersModule } from './users/users.module';
 import { RecordsModule } from './records/records.module';
@@ -11,6 +12,9 @@ import { SharedModule } from './shared/shared.module';
 import { User } from './users/entities/user.entity';
 import { Record } from './records/entities/record.entity';
 import { RecordStatusHistory } from './record-status-history/entities/record-status-history.entity';
+
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 
 @Module({
   imports: [
@@ -37,6 +41,16 @@ import { RecordStatusHistory } from './record-status-history/entities/record-sta
     RecordStatusHistoryModule,
     AuthModule,
     SharedModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
   ],
 })
 export class AppModule {}

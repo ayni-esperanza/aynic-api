@@ -19,6 +19,7 @@ export class UsersService {
   async create(
     createUserDto: CreateUserDto,
   ): Promise<Omit<User, 'contrasenia'>> {
+    // Verificar si el usuario ya existe
     const existingUser = await this.userRepository.findOne({
       where: { usuario: createUserDto.usuario },
     });
@@ -27,7 +28,7 @@ export class UsersService {
       throw new ConflictException('El usuario ya existe');
     }
 
-    // Hash de la contraseña antes de guardar
+    // Hash de la contraseña ANTES de guardar
     const hashedPassword = await this.hashPassword(createUserDto.contrasenia);
 
     const user = this.userRepository.create({
@@ -38,16 +39,32 @@ export class UsersService {
     const savedUser = await this.userRepository.save(user);
 
     // Excluir la contraseña del resultado
-    const { contrasenia, ...userWithoutPassword } = savedUser;
-    return userWithoutPassword;
+    return {
+      id: savedUser.id,
+      usuario: savedUser.usuario,
+      apellidos: savedUser.apellidos,
+      cargo: savedUser.cargo,
+      celular: savedUser.celular,
+      email: savedUser.email,
+      empresa: savedUser.empresa,
+      nombre: savedUser.nombre,
+      rol: savedUser.rol,
+    };
   }
 
   async findAll(): Promise<Omit<User, 'contrasenia'>[]> {
     const users = await this.userRepository.find();
-    return users.map((user) => {
-      const { contrasenia, ...userWithoutPassword } = user;
-      return userWithoutPassword;
-    });
+    return users.map((user) => ({
+      id: user.id,
+      usuario: user.usuario,
+      apellidos: user.apellidos,
+      cargo: user.cargo,
+      celular: user.celular,
+      email: user.email,
+      empresa: user.empresa,
+      nombre: user.nombre,
+      rol: user.rol,
+    }));
   }
 
   async findOne(id: number): Promise<Omit<User, 'contrasenia'>> {
@@ -57,8 +74,17 @@ export class UsersService {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
     }
 
-    const { contrasenia, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return {
+      id: user.id,
+      usuario: user.usuario,
+      apellidos: user.apellidos,
+      cargo: user.cargo,
+      celular: user.celular,
+      email: user.email,
+      empresa: user.empresa,
+      nombre: user.nombre,
+      rol: user.rol,
+    };
   }
 
   async update(
@@ -92,8 +118,17 @@ export class UsersService {
     await this.userRepository.update(id, updateUserDto);
     const updatedUser = await this.userRepository.findOne({ where: { id } });
 
-    const { contrasenia, ...userWithoutPassword } = updatedUser!;
-    return userWithoutPassword;
+    return {
+      id: updatedUser!.id,
+      usuario: updatedUser!.usuario,
+      apellidos: updatedUser!.apellidos,
+      cargo: updatedUser!.cargo,
+      celular: updatedUser!.celular,
+      email: updatedUser!.email,
+      empresa: updatedUser!.empresa,
+      nombre: updatedUser!.nombre,
+      rol: updatedUser!.rol,
+    };
   }
 
   async remove(id: number): Promise<void> {
@@ -106,7 +141,7 @@ export class UsersService {
     await this.userRepository.remove(user);
   }
 
-  async findByUsername(username: string): Promise<User | undefined> {
+  async findByUsername(username: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { usuario: username } });
   }
 

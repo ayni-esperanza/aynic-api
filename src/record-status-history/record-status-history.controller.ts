@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +18,7 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import {
   RecordStatusHistoryService,
@@ -24,15 +26,21 @@ import {
 } from './record-status-history.service';
 import { CreateRecordStatusHistoryDto } from './dto/create-record-status-history.dto';
 import { UpdateRecordStatusHistoryDto } from './dto/update-record-status-history.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/auth.decorators';
 
 @ApiTags('record-status-history')
 @Controller('record-status-history')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class RecordStatusHistoryController {
   constructor(
     private readonly recordStatusHistoryService: RecordStatusHistoryService,
   ) {}
 
   @Post()
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({
     summary: 'Crear un nuevo registro en el historial de estados',
   })
@@ -45,6 +53,7 @@ export class RecordStatusHistoryController {
   }
 
   @Post('add-status-change')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Agregar un cambio de estado rápido' })
   @ApiResponse({
     status: 201,
@@ -61,6 +70,7 @@ export class RecordStatusHistoryController {
   }
 
   @Get()
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({
     summary: 'Obtener todo el historial de estados con filtros opcionales',
   })
@@ -94,12 +104,14 @@ export class RecordStatusHistoryController {
   }
 
   @Get('statistics')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener estadísticas de estados' })
   getStatistics() {
     return this.recordStatusHistoryService.getStatusStatistics();
   }
 
   @Get('recent-activity')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener actividad reciente' })
   @ApiQuery({
     name: 'limit',
@@ -112,6 +124,7 @@ export class RecordStatusHistoryController {
   }
 
   @Get('by-period')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener cambios de estado por período' })
   @ApiQuery({
     name: 'fecha_inicio',
@@ -134,6 +147,7 @@ export class RecordStatusHistoryController {
   }
 
   @Get('by-record/:registroId')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({
     summary: 'Obtener historial completo de un registro específico',
   })
@@ -143,6 +157,7 @@ export class RecordStatusHistoryController {
   }
 
   @Get('latest-by-record/:registroId')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener el estado más reciente de un registro' })
   @ApiParam({ name: 'registroId', description: 'ID del registro' })
   getLatestStatusByRecord(
@@ -154,6 +169,7 @@ export class RecordStatusHistoryController {
   }
 
   @Get('by-state/:estado')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({
     summary: 'Obtener todos los cambios de un estado específico',
   })
@@ -163,6 +179,7 @@ export class RecordStatusHistoryController {
   }
 
   @Get('date-range')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener historial en un rango de fechas' })
   @ApiQuery({
     name: 'inicio',
@@ -185,6 +202,7 @@ export class RecordStatusHistoryController {
   }
 
   @Get('has-history/:registroId')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Verificar si un registro tiene historial' })
   @ApiParam({ name: 'registroId', description: 'ID del registro' })
   async hasHistory(@Param('registroId', ParseIntPipe) registroId: number) {
@@ -194,6 +212,7 @@ export class RecordStatusHistoryController {
   }
 
   @Get(':id')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener un registro de historial por ID' })
   @ApiResponse({ status: 200, description: 'Registro de historial encontrado' })
   @ApiResponse({
@@ -205,6 +224,7 @@ export class RecordStatusHistoryController {
   }
 
   @Patch(':id')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Actualizar un registro de historial' })
   @ApiResponse({
     status: 200,
@@ -225,8 +245,11 @@ export class RecordStatusHistoryController {
   }
 
   @Delete(':id')
+  @Roles('ADMINISTRADOR')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un registro de historial' })
+  @ApiOperation({
+    summary: 'Eliminar un registro de historial (Solo Administradores)',
+  })
   @ApiResponse({
     status: 204,
     description: 'Registro de historial eliminado exitosamente',
@@ -235,15 +258,26 @@ export class RecordStatusHistoryController {
     status: 404,
     description: 'Registro de historial no encontrado',
   })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Se requiere rol de administrador',
+  })
   async remove(@Param('id', ParseIntPipe) id: number) {
     await this.recordStatusHistoryService.remove(id);
   }
 
   @Delete('cleanup/:days')
+  @Roles('ADMINISTRADOR')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Limpiar historial antiguo (mantenimiento)' })
+  @ApiOperation({
+    summary: 'Limpiar historial antiguo - Mantenimiento (Solo Administradores)',
+  })
   @ApiParam({ name: 'days', description: 'Días de antigüedad para eliminar' })
   @ApiResponse({ status: 200, description: 'Historial limpiado exitosamente' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Se requiere rol de administrador',
+  })
   async cleanOldHistory(@Param('days', ParseIntPipe) days: number) {
     const deletedCount =
       await this.recordStatusHistoryService.cleanOldHistory(days);

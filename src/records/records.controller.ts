@@ -10,18 +10,31 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { RecordsService, RecordFilters } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/auth.decorators';
 
 @ApiTags('records')
 @Controller('records')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class RecordsController {
   constructor(private readonly recordsService: RecordsService) {}
 
   @Post()
+  @Roles('ADMINISTRADOR', 'USUARIO') // Ambos roles pueden crear registros
   @ApiOperation({ summary: 'Crear un nuevo registro de línea de vida' })
   @ApiResponse({ status: 201, description: 'Registro creado exitosamente' })
   @ApiResponse({ status: 409, description: 'El código ya existe' })
@@ -30,6 +43,7 @@ export class RecordsController {
   }
 
   @Get()
+  @Roles('ADMINISTRADOR', 'USUARIO') // Ambos roles pueden ver registros
   @ApiOperation({
     summary: 'Obtener todos los registros con filtros opcionales',
   })
@@ -69,12 +83,14 @@ export class RecordsController {
   }
 
   @Get('statistics')
+  @Roles('ADMINISTRADOR', 'USUARIO') // Ambos pueden ver estadísticas
   @ApiOperation({ summary: 'Obtener estadísticas generales de registros' })
   getStatistics() {
     return this.recordsService.getRecordStatistics();
   }
 
   @Get('expiring')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener registros que vencen pronto' })
   @ApiQuery({
     name: 'days',
@@ -87,24 +103,28 @@ export class RecordsController {
   }
 
   @Get('expired')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener registros vencidos' })
   getExpiredRecords() {
     return this.recordsService.getExpiredRecords();
   }
 
   @Get('by-status/:status')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener registros por estado' })
   getRecordsByStatus(@Param('status') status: string) {
     return this.recordsService.getRecordsByStatus(status);
   }
 
   @Get('by-code/:codigo')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Buscar registro por código' })
   findByCode(@Param('codigo') codigo: string) {
     return this.recordsService.findByCode(codigo);
   }
 
   @Get(':id')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener un registro por ID' })
   @ApiResponse({ status: 200, description: 'Registro encontrado' })
   @ApiResponse({ status: 404, description: 'Registro no encontrado' })
@@ -113,6 +133,7 @@ export class RecordsController {
   }
 
   @Patch(':id')
+  @Roles('ADMINISTRADOR', 'USUARIO') // Ambos roles pueden actualizar registros
   @ApiOperation({ summary: 'Actualizar un registro' })
   @ApiResponse({
     status: 200,
@@ -127,10 +148,15 @@ export class RecordsController {
   }
 
   @Delete(':id')
+  @Roles('ADMINISTRADOR') // Solo administradores pueden eliminar
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un registro' })
+  @ApiOperation({ summary: 'Eliminar un registro (Solo Administradores)' })
   @ApiResponse({ status: 204, description: 'Registro eliminado exitosamente' })
   @ApiResponse({ status: 404, description: 'Registro no encontrado' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Se requiere rol de administrador',
+  })
   async remove(@Param('id', ParseIntPipe) id: number) {
     await this.recordsService.remove(id);
   }
