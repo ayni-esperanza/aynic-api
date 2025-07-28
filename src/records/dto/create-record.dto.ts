@@ -21,7 +21,12 @@ export class CreateRecordDto {
   fv_meses?: number;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString(
+    {},
+    {
+      message: 'fecha_instalacion debe ser una fecha válida (YYYY-MM-DD o ISO)',
+    },
+  )
   fecha_instalacion?: Date;
 
   @IsOptional()
@@ -45,7 +50,12 @@ export class CreateRecordDto {
   ubicacion?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString(
+    {},
+    {
+      message: 'fecha_vencimiento debe ser una fecha válida (YYYY-MM-DD o ISO)',
+    },
+  )
   fecha_vencimiento?: Date;
 
   @IsOptional()

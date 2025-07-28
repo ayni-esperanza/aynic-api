@@ -23,6 +23,7 @@ import { RecordsService, RecordFilters } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { StatusUpdateService } from '../schedules/status-update.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
@@ -32,7 +33,10 @@ import { Roles } from '../auth/decorators/auth.decorators';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class RecordsController {
-  constructor(private readonly recordsService: RecordsService) {}
+  constructor(
+    private readonly recordsService: RecordsService,
+    private readonly statusUpdateService: StatusUpdateService,
+  ) {}
 
   @Post()
   @Roles('ADMINISTRADOR', 'USUARIO') // Ambos roles pueden crear registros
@@ -113,8 +117,33 @@ export class RecordsController {
   @Get('statistics')
   @Roles('ADMINISTRADOR', 'USUARIO') // Ambos pueden ver estadísticas
   @ApiOperation({ summary: 'Obtener estadísticas generales de registros' })
-  getStatistics() {
-    return this.recordsService.getRecordStatistics();
+  async getStatistics() {
+    const basicStats = await this.recordsService.getRecordStatistics();
+    const statusStats = await this.statusUpdateService.getStatusStatistics();
+
+    return {
+      ...basicStats,
+      statusBreakdown: statusStats,
+      lastUpdate: statusStats.ultimaActualizacion,
+    };
+  }
+
+  @Post('recalculate-states')
+  @Roles('ADMINISTRADOR') // Solo administradores pueden forzar recálculo
+  @ApiOperation({
+    summary:
+      'Recalcular estados de todos los registros manualmente (Solo Administradores)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estados recalculados exitosamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado - Se requiere rol de administrador',
+  })
+  async recalculateStates() {
+    return this.statusUpdateService.manualStatusUpdate();
   }
 
   @Get('expiring')

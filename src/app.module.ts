@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 
 import { UsersModule } from './users/users.module';
@@ -9,6 +10,7 @@ import { RecordsModule } from './records/records.module';
 import { RecordStatusHistoryModule } from './record-status-history/record-status-history.module';
 import { AuthModule } from './auth/auth.module';
 import { SharedModule } from './shared/shared.module';
+import { ScheduleModule } from './schedules/schedules.module';
 
 import { User } from './users/entities/user.entity';
 import { Record } from './records/entities/record.entity';
@@ -22,6 +24,8 @@ import { RolesGuard } from './auth/guards/roles.guard';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // Habilitar scheduling de tareas
+    NestScheduleModule.forRoot(),
     // Configuración de Rate Limiting
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -70,6 +74,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     RecordStatusHistoryModule,
     AuthModule,
     SharedModule,
+    ScheduleModule,
   ],
   providers: [
     // Rate Limiting Guard globalmente
