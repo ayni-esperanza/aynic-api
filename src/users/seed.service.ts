@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcryptjs';
 
@@ -11,28 +12,52 @@ export class SeedService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly configService: ConfigService,
   ) {}
 
   async createDefaultUsers(): Promise<void> {
-    this.logger.log('Iniciando creación de usuarios predefinidos...');
+    const environment = this.configService.get<string>('NODE_ENV');
+    const createUsers =
+      this.configService.get<string>('CREATE_DEFAULT_USERS') === 'true';
 
-    // Verificar si ya existen usuarios
-    const userCount = await this.userRepository.count();
-    if (userCount > 0) {
-      this.logger.log('Ya existen usuarios en el sistema. Omitiendo seed.');
+    // En producción, solo crear si se permite explícitamente
+    if (environment === 'production' && !createUsers) {
+      this.logger.log(
+        'Entorno de producción: omitiendo creación automática de usuarios',
+      );
       return;
     }
 
+    this.logger.log('Verificando usuarios del sistema...');
+
     try {
-      // Crear usuario administrador
-      await this.createAdminUser();
+      // Verificar usuarios específicos en lugar de count total
+      const adminExists = await this.userRepository.findOne({
+        where: { usuario: 'admin' },
+      });
 
-      // Crear usuario normal
-      await this.createNormalUser();
+      const userExists = await this.userRepository.findOne({
+        where: { usuario: 'usuario' },
+      });
 
-      this.logger.log('Usuarios predefinidos creados exitosamente');
+      // Crear admin solo si no existe
+      if (!adminExists) {
+        await this.createAdminUser();
+      } else {
+        this.logger.log('Usuario admin ya existe, omitiendo creación.');
+      }
+
+      // Crear usuario normal solo si no existe
+      if (!userExists) {
+        await this.createNormalUser();
+      } else {
+        this.logger.log('Usuario normal ya existe, omitiendo creación.');
+      }
+
+      // Verificar que exista al menos un administrador
+      await this.ensureAdminExists();
     } catch (error) {
-      this.logger.error('Error al crear usuarios predefinidos:', error);
+      this.logger.error('Error al verificar/crear usuarios:', error);
     }
   }
 
@@ -80,13 +105,38 @@ export class SeedService {
     this.logger.log(`   Email: ${userData.email}`);
   }
 
+  private async ensureAdminExists(): Promise<void> {
+    const adminCount = await this.userRepository.count({
+      where: { rol: 'ADMINISTRADOR' },
+    });
+
+    if (adminCount === 0) {
+      this.logger.warn('ALERTA: No hay administradores en el sistema');
+      this.logger.warn('Creando administrador de emergencia...');
+      await this.createAdminUser();
+      this.logger.warn(
+        'ACCIÓN REQUERIDA: Cambiar credenciales del admin por seguridad',
+      );
+    } else {
+      this.logger.log(`Sistema tiene ${adminCount} administrador(es)`);
+    }
+  }
+
   private async hashPassword(plainPassword: string): Promise<string> {
-    const saltRounds = 10;
+    const saltRounds =
+      Number(this.configService.get<string>('BCRYPT_SALT_ROUNDS')) || 10;
     return await bcrypt.hash(plainPassword, saltRounds);
   }
 
   // Método para resetear usuarios (útil para desarrollo)
   async resetUsers(): Promise<void> {
+    const environment = this.configService.get<string>('NODE_ENV');
+
+    if (environment === 'production') {
+      this.logger.error('RESET no permitido en producción');
+      return;
+    }
+
     this.logger.log('Reseteando usuarios...');
 
     // Eliminar todos los usuarios
@@ -112,5 +162,12 @@ export class SeedService {
         rol: 'USUARIO',
       },
     };
+  }
+
+  // Método para crear administrador de emergencia en producción
+  async createEmergencyAdmin(): Promise<void> {
+    this.logger.warn('Creando administrador de emergencia...');
+    await this.createAdminUser();
+    this.logger.warn('Cambie las credenciales inmediatamente por seguridad');
   }
 }
