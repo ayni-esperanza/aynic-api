@@ -21,7 +21,16 @@ async function bootstrap() {
       'Authorization',
       'X-API-Key',
     ],
-    exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'X-Current-Page'],
+    exposedHeaders: [
+      'X-Total-Count',
+      'X-Page-Count',
+      'X-Current-Page',
+      'X-Has-Next-Page',
+      'X-Has-Previous-Page',
+      'X-RateLimit-Limit',
+      'X-RateLimit-Remaining',
+      'X-RateLimit-Reset',
+    ],
   });
 
   // Configuración global de validación
@@ -63,6 +72,7 @@ async function bootstrap() {
   console.log(`Aplicación ejecutándose en: http://localhost:${port}`);
   console.log(`Documentación Swagger: http://localhost:${port}/api`);
   console.log(`CORS habilitado para: ${process.env.CORS_ORIGIN || '*'}`);
+  console.log(`Rate Limiting habilitado`);
 }
 
 bootstrap();

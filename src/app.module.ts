@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
 import { UsersModule } from './users/users.module';
@@ -20,6 +21,34 @@ import { RolesGuard } from './auth/guards/roles.guard';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    // Configuración de Rate Limiting
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const isDevelopment = config.get('NODE_ENV') === 'development';
+
+        if (isDevelopment) {
+          // En desarrollo: más permisivo
+          return [
+            {
+              name: 'short',
+              ttl: 60000, // 1 minuto
+              limit: 100, // 100 requests por minuto
+            },
+          ];
+        }
+
+        // En producción: más restrictivo
+        return [
+          {
+            name: 'short',
+            ttl: Number(config.get('THROTTLE_TTL')) || 60000, // 1 minuto
+            limit: Number(config.get('THROTTLE_LIMIT')) || 20, // 20 requests por minuto
+          },
+        ];
+      },
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -43,6 +72,11 @@ import { RolesGuard } from './auth/guards/roles.guard';
     SharedModule,
   ],
   providers: [
+    // Rate Limiting Guard globalmente
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
