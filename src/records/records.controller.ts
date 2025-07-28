@@ -22,6 +22,7 @@ import {
 import { RecordsService, RecordFilters } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
@@ -45,7 +46,31 @@ export class RecordsController {
   @Get()
   @Roles('ADMINISTRADOR', 'USUARIO') // Ambos roles pueden ver registros
   @ApiOperation({
-    summary: 'Obtener todos los registros con filtros opcionales',
+    summary: 'Obtener todos los registros con filtros y paginación',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Número de página (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Elementos por página (default: 10, max: 100)',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    description: 'Campo para ordenar (default: codigo)',
+    example: 'codigo',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    description: 'Dirección del ordenamiento (ASC/DESC)',
+    enum: ['ASC', 'DESC'],
   })
   @ApiQuery({
     name: 'codigo',
@@ -78,8 +103,11 @@ export class RecordsController {
     description: 'Buscar por ubicación (parcial)',
   })
   @ApiQuery({ name: 'seec', required: false, description: 'Filtrar por SEEC' })
-  findAll(@Query() filters: RecordFilters) {
-    return this.recordsService.findAll(filters);
+  findAll(
+    @Query() filters: RecordFilters,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.recordsService.findAll(filters, paginationDto);
   }
 
   @Get('statistics')

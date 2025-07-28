@@ -15,6 +15,11 @@ import {
 import { Record } from './entities/record.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import {
+  PaginatedResponse,
+  PaginationHelper,
+} from '../common/interfaces/paginated-response.interface';
 
 export interface RecordFilters {
   codigo?: string;
@@ -93,7 +98,18 @@ export class RecordsService {
     return await this.recordRepository.save(record);
   }
 
-  async findAll(filters?: RecordFilters): Promise<Record[]> {
+  async findAll(
+    filters?: RecordFilters,
+    paginationDto?: PaginationDto,
+  ): Promise<PaginatedResponse<Record>> {
+    // Configurar paginación con valores por defecto usando métodos helper
+    const pagination = paginationDto || new PaginationDto();
+
+    const page = pagination.getPage();
+    const limit = pagination.getLimit();
+    const sortBy = pagination.getSortBy();
+    const sortOrder = pagination.getSortOrder();
+
     const whereConditions: WhereConditions = {};
 
     if (filters) {
@@ -158,12 +174,19 @@ export class RecordsService {
       }
     }
 
+    // Configurar opciones de búsqueda con paginación
     const options: FindManyOptions<Record> = {
       where: whereConditions,
-      order: { codigo: 'ASC' },
+      order: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
     };
 
-    return await this.recordRepository.find(options);
+    // Ejecutar búsqueda con conteo total
+    const [records, total] = await this.recordRepository.findAndCount(options);
+
+    // Retornar respuesta paginada
+    return PaginationHelper.createResponse(records, total, page, limit);
   }
 
   async findOne(id: number): Promise<Record> {
