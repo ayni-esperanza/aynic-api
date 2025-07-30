@@ -10,6 +10,23 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
+// Interfaz para el usuario autenticado
+interface AuthenticatedUser {
+  userId: number;
+  username: string;
+  role: string;
+}
+
+// Interfaz para la request
+interface RequestWithUser {
+  user: AuthenticatedUser;
+  params: Record<string, string>;
+  route?: {
+    path: string;
+  };
+  url: string;
+}
+
 /**
  * Guard para verificar ownership de recursos
  * Permite que usuarios solo accedan a sus propios recursos
@@ -23,7 +40,7 @@ export class OwnershipGuard implements CanActivate {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     // Verificar si el ownership está habilitado para este endpoint
     const requiresOwnership = this.reflector.getAllAndOverride<boolean>(
       'requiresOwnership',
@@ -35,7 +52,7 @@ export class OwnershipGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
 
     if (!user) {
@@ -56,11 +73,7 @@ export class OwnershipGuard implements CanActivate {
     }
 
     // Verificar ownership según el tipo de recurso
-    const isOwner = await this.checkOwnership(
-      user.userId,
-      resourceId,
-      resourceType,
-    );
+    const isOwner = this.checkOwnership(user.userId, resourceId, resourceType);
 
     if (!isOwner) {
       throw new ForbiddenException(
@@ -74,27 +87,28 @@ export class OwnershipGuard implements CanActivate {
   /**
    * Extraer ID del recurso desde los parámetros de la URL
    */
-  private extractResourceId(request: any): number | null {
+  private extractResourceId(request: RequestWithUser): number | null {
     // Buscar en diferentes parámetros comunes
-    const id =
-      request.params.id || request.params.userId || request.params.recordId;
-    return id ? parseInt(id, 10) : null;
+    const idParam =
+      request.params?.id || request.params?.userId || request.params?.recordId;
+
+    return idParam ? parseInt(idParam, 10) : null;
   }
 
   /**
    * Determinar el tipo de recurso basado en la ruta
    */
   private getResourceType(context: ExecutionContext): string {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const path = request.route?.path || request.url;
 
-    if (path.includes('/users')) {
+    if (this.pathIncludes(path, '/users')) {
       return 'user';
     }
-    if (path.includes('/records')) {
+    if (this.pathIncludes(path, '/records')) {
       return 'record';
     }
-    if (path.includes('/alerts')) {
+    if (this.pathIncludes(path, '/alerts')) {
       return 'alert';
     }
 
@@ -102,13 +116,20 @@ export class OwnershipGuard implements CanActivate {
   }
 
   /**
+   * Helper method para verificar si un path incluye una cadena
+   */
+  private pathIncludes(path: string, searchString: string): boolean {
+    return typeof path === 'string' && path.includes(searchString);
+  }
+
+  /**
    * Verificar ownership del recurso
    */
-  private async checkOwnership(
+  private checkOwnership(
     userId: number,
     resourceId: number,
     resourceType: string,
-  ): Promise<boolean> {
+  ): boolean {
     switch (resourceType) {
       case 'user':
         // Para usuarios, solo pueden acceder a su propio perfil

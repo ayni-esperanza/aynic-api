@@ -6,6 +6,12 @@ import {
   ValidationOptions,
 } from 'class-validator';
 
+// Interface para objetos con fecha_instalacion
+interface ObjectWithInstallationDate {
+  fecha_instalacion?: string | Date | null;
+  [key: string]: unknown;
+}
+
 /**
  * Validador para verificar que la fecha de vencimiento sea posterior a la fecha de instalación
  */
@@ -13,18 +19,27 @@ import {
 export class IsAfterInstallationDateConstraint
   implements ValidatorConstraintInterface
 {
-  validate(fechaVencimiento: any, args: ValidationArguments): boolean {
+  validate(fechaVencimiento: unknown, args: ValidationArguments): boolean {
     if (!fechaVencimiento) return true; // Si no hay fecha de vencimiento, no validar
 
-    const object = args.object as any;
+    const object = args.object as ObjectWithInstallationDate;
     const fechaInstalacion = object.fecha_instalacion;
 
     if (!fechaInstalacion) return true; // Si no hay fecha de instalación, no validar
 
-    const instalacion = new Date(fechaInstalacion);
-    const vencimiento = new Date(fechaVencimiento);
+    try {
+      const instalacion = new Date(fechaInstalacion);
+      const vencimiento = new Date(fechaVencimiento as string | Date);
 
-    return vencimiento > instalacion;
+      // Verificar que las fechas sean válidas
+      if (isNaN(instalacion.getTime()) || isNaN(vencimiento.getTime())) {
+        return false;
+      }
+
+      return vencimiento > instalacion;
+    } catch {
+      return false;
+    }
   }
 
   defaultMessage(): string {
@@ -54,14 +69,23 @@ export function IsAfterInstallationDate(validationOptions?: ValidationOptions) {
 export class IsReasonableFutureDateConstraint
   implements ValidatorConstraintInterface
 {
-  validate(date: any): boolean {
+  validate(date: unknown): boolean {
     if (!date) return true; // Si no hay fecha, no validar
 
-    const inputDate = new Date(date);
-    const maxFutureDate = new Date();
-    maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 50); // Máximo 50 años en el futuro
+    try {
+      const inputDate = new Date(date as string | Date);
 
-    return inputDate <= maxFutureDate;
+      if (isNaN(inputDate.getTime())) {
+        return false;
+      }
+
+      const maxFutureDate = new Date();
+      maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 50); // Máximo 50 años en el futuro
+
+      return inputDate <= maxFutureDate;
+    } catch {
+      return false;
+    }
   }
 
   defaultMessage(): string {
@@ -91,14 +115,23 @@ export function IsReasonableFutureDate(validationOptions?: ValidationOptions) {
 export class IsReasonablePastDateConstraint
   implements ValidatorConstraintInterface
 {
-  validate(date: any): boolean {
+  validate(date: unknown): boolean {
     if (!date) return true; // Si no hay fecha, no validar
 
-    const inputDate = new Date(date);
-    const minPastDate = new Date();
-    minPastDate.setFullYear(minPastDate.getFullYear() - 100); // Máximo 100 años atrás
+    try {
+      const inputDate = new Date(date as string | Date);
 
-    return inputDate >= minPastDate;
+      if (isNaN(inputDate.getTime())) {
+        return false;
+      }
+
+      const minPastDate = new Date();
+      minPastDate.setFullYear(minPastDate.getFullYear() - 100); // Máximo 100 años atrás
+
+      return inputDate >= minPastDate;
+    } catch {
+      return false;
+    }
   }
 
   defaultMessage(): string {
@@ -136,10 +169,15 @@ export class IsValidRecordStatusConstraint
     'MANTENIMIENTO',
   ];
 
-  validate(status: any): boolean {
+  validate(status: unknown): boolean {
     if (!status) return true; // Si no hay estado, no validar (será manejado por @IsOptional)
 
-    return this.validStatuses.includes(status.toString().toUpperCase());
+    if (typeof status !== 'string' && typeof status !== 'number') {
+      return false;
+    }
+
+    const statusString = String(status).toUpperCase();
+    return this.validStatuses.includes(statusString);
   }
 
   defaultMessage(): string {
@@ -169,10 +207,15 @@ export function IsValidRecordStatus(validationOptions?: ValidationOptions) {
 export class IsReasonableLifespanConstraint
   implements ValidatorConstraintInterface
 {
-  validate(years: any): boolean {
+  validate(years: unknown): boolean {
     if (years === null || years === undefined) return true; // Si no hay valor, no validar
 
     const numYears = Number(years);
+
+    if (isNaN(numYears)) {
+      return false;
+    }
+
     return numYears >= 1 && numYears <= 100;
   }
 
@@ -197,14 +240,19 @@ export function IsReasonableLifespan(validationOptions?: ValidationOptions) {
 }
 
 /**
- * Validador para meses de vida útil razonables (1-11 meses)
+ * Validador para meses de vida útil razonables (0-11 meses)
  */
 @ValidatorConstraint({ name: 'isValidMonths', async: false })
 export class IsValidMonthsConstraint implements ValidatorConstraintInterface {
-  validate(months: any): boolean {
+  validate(months: unknown): boolean {
     if (months === null || months === undefined) return true; // Si no hay valor, no validar
 
     const numMonths = Number(months);
+
+    if (isNaN(numMonths)) {
+      return false;
+    }
+
     return numMonths >= 0 && numMonths <= 11;
   }
 

@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { RecordStatusHistory } from '../entities/record-status-history.entity';
 import { Record as RecordEntity } from '../../records/entities/record.entity';
 
@@ -145,19 +145,13 @@ export class StatusHistoryBusinessService {
     const fiveMinutesAgo = new Date();
     fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
 
-    const recentChanges = await this.statusHistoryRepository.count({
+    // Usar una consulta más específica y tipada para cambios recientes
+    const recentChangesCount = await this.statusHistoryRepository.count({
       where: {
         registro_id: registroId,
-        fecha_cambio: new Date() as any, // Usar raw query para fecha reciente
+        fecha_cambio: MoreThan(fiveMinutesAgo),
       },
     });
-
-    // Query más específico para cambios recientes
-    const recentChangesCount = await this.statusHistoryRepository
-      .createQueryBuilder('history')
-      .where('history.registro_id = :registroId', { registroId })
-      .andWhere('history.fecha_cambio > :fiveMinutesAgo', { fiveMinutesAgo })
-      .getCount();
 
     if (recentChangesCount >= 3) {
       throw new BadRequestException(
