@@ -114,7 +114,40 @@ export class RecordsController {
     return this.recordsService.findAll(filters, paginationDto);
   }
 
-  @Get('statistics')
+  @Get('validation-rules')
+  @Roles('ADMINISTRADOR', 'USUARIO')
+  @ApiOperation({ summary: 'Obtener reglas de validación para registros' })
+  @ApiResponse({ status: 200, description: 'Reglas de validación obtenidas' })
+  getValidationRules() {
+    return {
+      estados_validos: [
+        'ACTIVO',
+        'POR_VENCER',
+        'VENCIDO',
+        'INACTIVO',
+        'MANTENIMIENTO',
+      ],
+      longitud_maxima: {
+        codigo: 50,
+        cliente: 100,
+        equipo: 100,
+        observaciones: 1000,
+        seec: 50,
+        tipo_linea: 100,
+        ubicacion: 200,
+      },
+      rangos_numericos: {
+        fv_anios: { min: 1, max: 100 },
+        fv_meses: { min: 0, max: 11 },
+        longitud: { min: 0, max: 10000 },
+      },
+      validaciones_fechas: {
+        fecha_vencimiento_debe_ser_posterior_a_instalacion: true,
+        maximo_anos_futuro: 50,
+        maximo_anos_pasado: 100,
+      },
+    };
+  }
   @Roles('ADMINISTRADOR', 'USUARIO') // Ambos pueden ver estadísticas
   @ApiOperation({ summary: 'Obtener estadísticas generales de registros' })
   async getStatistics() {
