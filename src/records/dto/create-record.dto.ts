@@ -82,7 +82,7 @@ export class CreateRecordDto {
     },
   )
   @IsReasonablePastDate()
-  fecha_instalacion?: Date;
+  fecha_instalacion?: string;
 
   @ApiProperty({
     description: 'Longitud en metros',
@@ -133,7 +133,7 @@ export class CreateRecordDto {
   )
   @IsReasonableFutureDate()
   @IsAfterInstallationDate()
-  fecha_vencimiento?: Date;
+  fecha_vencimiento?: String;
 
   @ApiProperty({
     description: 'Estado actual del registro',
