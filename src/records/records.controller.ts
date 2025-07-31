@@ -19,9 +19,10 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { RecordsService, RecordFilters } from './records.service';
+import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
+import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { StatusUpdateService } from '../schedules/status-update.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -108,10 +109,9 @@ export class RecordsController {
   })
   @ApiQuery({ name: 'seec', required: false, description: 'Filtrar por SEEC' })
   findAll(
-    @Query() filters: RecordFilters,
-    @Query() paginationDto: PaginationDto,
+    @Query() query: GetRecordsQueryDto
   ) {
-    return this.recordsService.findAll(filters, paginationDto);
+    return this.recordsService.findAll(query);
   }
 
   @Get('validation-rules')

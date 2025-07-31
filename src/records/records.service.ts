@@ -15,27 +15,12 @@ import {
 import { Record } from './entities/record.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
+import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import {
   PaginatedResponse,
   PaginationHelper,
 } from '../common/interfaces/paginated-response.interface';
 
-export interface RecordFilters {
-  codigo?: string;
-  cliente?: string;
-  equipo?: string;
-  estado_actual?: string;
-  tipo_linea?: string;
-  ubicacion?: string;
-  seec?: string;
-  fecha_vencimiento_desde?: Date;
-  fecha_vencimiento_hasta?: Date;
-  fecha_instalacion_desde?: Date;
-  fecha_instalacion_hasta?: Date;
-}
-
-// Tipo para las condiciones de búsqueda que permite operadores de TypeORM
 type WhereConditions = {
   [K in keyof Record]?: Record[K] | FindOperator<Record[K]>;
 };
@@ -48,25 +33,22 @@ export class RecordsService {
   ) {}
 
   async create(createRecordDto: CreateRecordDto): Promise<Record> {
-    // Verificar que el código no existe
     const existingRecord = await this.recordRepository.findOne({
       where: { codigo: createRecordDto.codigo },
     });
-
     if (existingRecord) {
       throw new ConflictException(
         `Ya existe un registro con el código: ${createRecordDto.codigo}`,
       );
     }
 
-    // Validar fechas si se proporcionan
+    // Validar fechas si ambas existen
     if (
       createRecordDto.fecha_instalacion &&
       createRecordDto.fecha_vencimiento
     ) {
-      const instalacion = new Date(createRecordDto.fecha_instalacion);
-      const vencimiento = new Date(createRecordDto.fecha_vencimiento);
-
+      const instalacion = new Date(String(createRecordDto.fecha_instalacion));
+      const vencimiento = new Date(String(createRecordDto.fecha_vencimiento));
       if (vencimiento <= instalacion) {
         throw new BadRequestException(
           'La fecha de vencimiento debe ser posterior a la fecha de instalación',
@@ -74,13 +56,18 @@ export class RecordsService {
       }
     }
 
-    // Calcular fecha de vencimiento si se proporcionan años y meses de vida útil
-    let fechaVencimiento = createRecordDto.fecha_vencimiento;
+    // Calcular vencimiento si se proporcionan años/meses de vida útil
+    let fechaVencimiento = createRecordDto.fecha_vencimiento
+      ? new Date(String(createRecordDto.fecha_vencimiento))
+      : undefined;
+
     if (
       createRecordDto.fecha_instalacion &&
       (createRecordDto.fv_anios || createRecordDto.fv_meses)
     ) {
-      const fechaInstalacion = new Date(createRecordDto.fecha_instalacion);
+      const fechaInstalacion = new Date(
+        String(createRecordDto.fecha_instalacion),
+      );
       const anios = createRecordDto.fv_anios || 0;
       const meses = createRecordDto.fv_meses || 0;
 
@@ -98,83 +85,60 @@ export class RecordsService {
     return await this.recordRepository.save(record);
   }
 
-  async findAll(
-    filters?: RecordFilters,
-    paginationDto?: PaginationDto,
-  ): Promise<PaginatedResponse<Record>> {
-    // Configurar paginación con valores por defecto usando métodos helper
-    const pagination = paginationDto || new PaginationDto();
-
-    const page = pagination.getPage();
-    const limit = pagination.getLimit();
-    const sortBy = pagination.getSortBy();
-    const sortOrder = pagination.getSortOrder();
+  async findAll(query: GetRecordsQueryDto): Promise<PaginatedResponse<Record>> {
+    const page = query.getPage();
+    const limit = query.getLimit();
+    const sortBy = query.getSortBy();
+    const sortOrder = query.getSortOrder();
 
     const whereConditions: WhereConditions = {};
 
-    if (filters) {
-      // Filtros de texto (búsqueda parcial)
-      if (filters.codigo) {
-        whereConditions.codigo = Like(`%${filters.codigo}%`);
-      }
-      if (filters.cliente) {
-        whereConditions.cliente = Like(`%${filters.cliente}%`);
-      }
-      if (filters.equipo) {
-        whereConditions.equipo = Like(`%${filters.equipo}%`);
-      }
-      if (filters.ubicacion) {
-        whereConditions.ubicacion = Like(`%${filters.ubicacion}%`);
-      }
+    if (query.codigo) whereConditions.codigo = Like(`%${query.codigo}%`);
+    if (query.cliente) whereConditions.cliente = Like(`%${query.cliente}%`);
+    if (query.equipo) whereConditions.equipo = Like(`%${query.equipo}%`);
+    if (query.ubicacion)
+      whereConditions.ubicacion = Like(`%${query.ubicacion}%`);
+    if (query.estado_actual)
+      whereConditions.estado_actual = query.estado_actual;
+    if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
+    if (query.seec) whereConditions.seec = query.seec;
 
-      // Filtros exactos
-      if (filters.estado_actual) {
-        whereConditions.estado_actual = filters.estado_actual;
-      }
-      if (filters.tipo_linea) {
-        whereConditions.tipo_linea = filters.tipo_linea;
-      }
-      if (filters.seec) {
-        whereConditions.seec = filters.seec;
-      }
-
-      // Filtros de rango de fechas
-      if (filters.fecha_vencimiento_desde && filters.fecha_vencimiento_hasta) {
-        whereConditions.fecha_vencimiento = Between(
-          filters.fecha_vencimiento_desde,
-          filters.fecha_vencimiento_hasta,
-        );
-      } else if (filters.fecha_vencimiento_desde) {
-        whereConditions.fecha_vencimiento = Between(
-          filters.fecha_vencimiento_desde,
-          new Date('2099-12-31'),
-        );
-      } else if (filters.fecha_vencimiento_hasta) {
-        whereConditions.fecha_vencimiento = Between(
-          new Date('1900-01-01'),
-          filters.fecha_vencimiento_hasta,
-        );
-      }
-
-      if (filters.fecha_instalacion_desde && filters.fecha_instalacion_hasta) {
-        whereConditions.fecha_instalacion = Between(
-          filters.fecha_instalacion_desde,
-          filters.fecha_instalacion_hasta,
-        );
-      } else if (filters.fecha_instalacion_desde) {
-        whereConditions.fecha_instalacion = Between(
-          filters.fecha_instalacion_desde,
-          new Date('2099-12-31'),
-        );
-      } else if (filters.fecha_instalacion_hasta) {
-        whereConditions.fecha_instalacion = Between(
-          new Date('1900-01-01'),
-          filters.fecha_instalacion_hasta,
-        );
-      }
+    // Rango de fechas de vencimiento
+    if (query.fecha_vencimiento_desde && query.fecha_vencimiento_hasta) {
+      whereConditions.fecha_vencimiento = Between(
+        new Date(String(query.fecha_vencimiento_desde)),
+        new Date(String(query.fecha_vencimiento_hasta)),
+      );
+    } else if (query.fecha_vencimiento_desde) {
+      whereConditions.fecha_vencimiento = Between(
+        new Date(String(query.fecha_vencimiento_desde)),
+        new Date('2099-12-31'),
+      );
+    } else if (query.fecha_vencimiento_hasta) {
+      whereConditions.fecha_vencimiento = Between(
+        new Date('1900-01-01'),
+        new Date(String(query.fecha_vencimiento_hasta)),
+      );
     }
 
-    // Configurar opciones de búsqueda con paginación
+    // Rango de fechas de instalación
+    if (query.fecha_instalacion_desde && query.fecha_instalacion_hasta) {
+      whereConditions.fecha_instalacion = Between(
+        new Date(String(query.fecha_instalacion_desde)),
+        new Date(String(query.fecha_instalacion_hasta)),
+      );
+    } else if (query.fecha_instalacion_desde) {
+      whereConditions.fecha_instalacion = Between(
+        new Date(String(query.fecha_instalacion_desde)),
+        new Date('2099-12-31'),
+      );
+    } else if (query.fecha_instalacion_hasta) {
+      whereConditions.fecha_instalacion = Between(
+        new Date('1900-01-01'),
+        new Date(String(query.fecha_instalacion_hasta)),
+      );
+    }
+
     const options: FindManyOptions<Record> = {
       where: whereConditions,
       order: { [sortBy]: sortOrder },
@@ -182,61 +146,50 @@ export class RecordsService {
       take: limit,
     };
 
-    // Ejecutar búsqueda con conteo total
     const [records, total] = await this.recordRepository.findAndCount(options);
 
-    // Retornar respuesta paginada
     return PaginationHelper.createResponse(records, total, page, limit);
   }
 
   async findOne(id: number): Promise<Record> {
     const record = await this.recordRepository.findOne({ where: { id } });
-
     if (!record) {
       throw new NotFoundException(`Registro con ID ${id} no encontrado`);
     }
-
     return record;
   }
 
   async findByCode(codigo: string): Promise<Record> {
     const record = await this.recordRepository.findOne({ where: { codigo } });
-
     if (!record) {
       throw new NotFoundException(
         `Registro con código ${codigo} no encontrado`,
       );
     }
-
     return record;
   }
 
   async update(id: number, updateRecordDto: UpdateRecordDto): Promise<Record> {
     const record = await this.findOne(id);
 
-    // Si se está cambiando el código, verificar que no exista
     if (updateRecordDto.codigo && updateRecordDto.codigo !== record.codigo) {
       const existingRecord = await this.recordRepository.findOne({
         where: { codigo: updateRecordDto.codigo },
       });
-
       if (existingRecord) {
         throw new ConflictException(
           `Ya existe un registro con el código: ${updateRecordDto.codigo}`,
         );
       }
     }
-
-    // Validar fechas si se proporcionan
     const fechaInstalacion =
       updateRecordDto.fecha_instalacion || record.fecha_instalacion;
     const fechaVencimiento =
       updateRecordDto.fecha_vencimiento || record.fecha_vencimiento;
 
     if (fechaInstalacion && fechaVencimiento) {
-      const instalacion = new Date(fechaInstalacion);
-      const vencimiento = new Date(fechaVencimiento);
-
+      const instalacion = new Date(String(fechaInstalacion));
+      const vencimiento = new Date(String(fechaVencimiento));
       if (vencimiento <= instalacion) {
         throw new BadRequestException(
           'La fecha de vencimiento debe ser posterior a la fecha de instalación',
@@ -244,8 +197,10 @@ export class RecordsService {
       }
     }
 
-    // Recalcular fecha de vencimiento si se actualizan años/meses de vida útil
-    let nuevaFechaVencimiento = updateRecordDto.fecha_vencimiento;
+    let nuevaFechaVencimiento = updateRecordDto.fecha_vencimiento
+      ? new Date(String(updateRecordDto.fecha_vencimiento))
+      : record.fecha_vencimiento;
+
     if (
       fechaInstalacion &&
       (updateRecordDto.fv_anios !== undefined ||
@@ -278,7 +233,6 @@ export class RecordsService {
     await this.recordRepository.remove(record);
   }
 
-  // Métodos útiles para reportes y análisis
   async getRecordsByStatus(estado: string): Promise<Record[]> {
     return await this.recordRepository.find({
       where: { estado_actual: estado },
