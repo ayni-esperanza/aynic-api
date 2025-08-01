@@ -23,7 +23,6 @@ import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
-import { PaginationDto } from '../common/dto/pagination.dto';
 import { StatusUpdateService } from '../schedules/status-update.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -40,7 +39,7 @@ export class RecordsController {
   ) {}
 
   @Post()
-  @Roles('ADMINISTRADOR', 'USUARIO') // Ambos roles pueden crear registros
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Crear un nuevo registro de línea de vida' })
   @ApiResponse({ status: 201, description: 'Registro creado exitosamente' })
   @ApiResponse({ status: 409, description: 'El código ya existe' })
@@ -49,7 +48,7 @@ export class RecordsController {
   }
 
   @Get()
-  @Roles('ADMINISTRADOR', 'USUARIO') // Ambos roles pueden ver registros
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({
     summary: 'Obtener todos los registros con filtros y paginación',
   })
@@ -108,9 +107,7 @@ export class RecordsController {
     description: 'Buscar por ubicación (parcial)',
   })
   @ApiQuery({ name: 'seec', required: false, description: 'Filtrar por SEEC' })
-  findAll(
-    @Query() query: GetRecordsQueryDto
-  ) {
+  findAll(@Query() query: GetRecordsQueryDto) {
     return this.recordsService.findAll(query);
   }
 
@@ -148,7 +145,9 @@ export class RecordsController {
       },
     };
   }
-  @Roles('ADMINISTRADOR', 'USUARIO') // Ambos pueden ver estadísticas
+
+  @Get('statistics')
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener estadísticas generales de registros' })
   async getStatistics() {
     const basicStats = await this.recordsService.getRecordStatistics();
@@ -162,7 +161,7 @@ export class RecordsController {
   }
 
   @Post('recalculate-states')
-  @Roles('ADMINISTRADOR') // Solo administradores pueden forzar recálculo
+  @Roles('ADMINISTRADOR')
   @ApiOperation({
     summary:
       'Recalcular estados de todos los registros manualmente (Solo Administradores)',
@@ -223,7 +222,7 @@ export class RecordsController {
   }
 
   @Patch(':id')
-  @Roles('ADMINISTRADOR', 'USUARIO') // Ambos roles pueden actualizar registros
+  @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Actualizar un registro' })
   @ApiResponse({
     status: 200,
@@ -238,7 +237,7 @@ export class RecordsController {
   }
 
   @Delete(':id')
-  @Roles('ADMINISTRADOR') // Solo administradores pueden eliminar
+  @Roles('ADMINISTRADOR')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Eliminar un registro (Solo Administradores)' })
   @ApiResponse({ status: 204, description: 'Registro eliminado exitosamente' })
