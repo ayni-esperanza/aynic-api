@@ -268,18 +268,34 @@ export class RecordsService {
 
   async getRecordStatistics() {
     const total = await this.recordRepository.count();
+
     const activos = await this.recordRepository.count({
       where: { estado_actual: 'ACTIVO' },
     });
-    const vencidos = (await this.getExpiredRecords()).length;
-    const porVencer = (await this.getExpiringRecords()).length;
+
+    const porVencer = await this.recordRepository.count({
+      where: { estado_actual: 'POR_VENCER' }, 
+    });
+
+    const vencidos = await this.recordRepository.count({
+      where: { estado_actual: 'VENCIDO' },
+    });
+
+    const inactivos = await this.recordRepository.count({
+      where: { estado_actual: 'INACTIVO' },
+    });
+
+    const mantenimiento = await this.recordRepository.count({
+      where: { estado_actual: 'MANTENIMIENTO' },
+    });
 
     return {
       total,
       activos,
       vencidos,
       por_vencer: porVencer,
-      inactivos: total - activos,
+      inactivos,
+      mantenimiento,
     };
   }
 }
