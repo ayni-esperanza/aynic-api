@@ -160,6 +160,17 @@ export class AlertsController {
     );
   }
 
+  @Patch('mark-all-read')
+  @Roles('ADMINISTRADOR')
+  @ApiOperation({ summary: 'Marcar todas las alertas como leídas' })
+  @ApiResponse({
+    status: 200,
+    description: 'Todas las alertas marcadas como leídas',
+  })
+  markAllAsRead() {
+    return this.alertsService.markAllAsRead();
+  }
+
   @Get(':id')
   @Roles('ADMINISTRADOR')
   @ApiOperation({ summary: 'Obtener una alerta por ID' })
@@ -188,17 +199,6 @@ export class AlertsController {
   @ApiResponse({ status: 404, description: 'Alerta no encontrada' })
   markAsRead(@Param('id', ParseIntPipe) id: number) {
     return this.alertsService.markAsRead(id);
-  }
-
-  @Patch('mark-all-read')
-  @Roles('ADMINISTRADOR')
-  @ApiOperation({ summary: 'Marcar todas las alertas como leídas' })
-  @ApiResponse({
-    status: 200,
-    description: 'Todas las alertas marcadas como leídas',
-  })
-  markAllAsRead() {
-    return this.alertsService.markAllAsRead();
   }
 
   @Delete(':id')
