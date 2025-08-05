@@ -17,20 +17,20 @@ export class StatusCalculatorService {
     Number(process.env.DAYS_TO_CRITICAL) || 60;
 
   /**
-   * Calcula el estado de un registro basado en su fecha de vencimiento
+   * Calcula el estado de un registro basado en su fecha de caducidad
    */
-  calculateStatus(fechaVencimiento: Date | null): RecordStatus {
-    if (!fechaVencimiento) {
+  calculateStatus(fechaCaducidad: Date | null): RecordStatus {
+    if (!fechaCaducidad) {
       return RecordStatus.ACTIVO; // Si no hay fecha, asumimos activo
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Normalizar a inicio del día
 
-    const vencimiento = new Date(fechaVencimiento);
-    vencimiento.setHours(0, 0, 0, 0); // Normalizar a inicio del día
+    const caducidad = new Date(fechaCaducidad);
+    caducidad.setHours(0, 0, 0, 0); // Normalizar a inicio del día
 
-    const diffTime = vencimiento.getTime() - today.getTime();
+    const diffTime = caducidad.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     // Lógica de estados
@@ -46,17 +46,17 @@ export class StatusCalculatorService {
   /**
    * Obtiene información detallada del estado
    */
-  getStatusInfo(fechaVencimiento: Date | null): {
+  getStatusInfo(fechaCaducidad: Date | null): {
     status: RecordStatus;
     daysRemaining: number;
     message: string;
     priority: 'low' | 'medium' | 'high' | 'critical';
   } {
-    if (!fechaVencimiento) {
+    if (!fechaCaducidad) {
       return {
         status: RecordStatus.ACTIVO,
         daysRemaining: Infinity,
-        message: 'Sin fecha de vencimiento definida',
+        message: 'Sin fecha de caducidad definida',
         priority: 'low',
       };
     }
@@ -64,13 +64,13 @@ export class StatusCalculatorService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const vencimiento = new Date(fechaVencimiento);
-    vencimiento.setHours(0, 0, 0, 0);
+    const caducidad = new Date(fechaCaducidad);
+    caducidad.setHours(0, 0, 0, 0);
 
-    const diffTime = vencimiento.getTime() - today.getTime();
+    const diffTime = caducidad.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    const status = this.calculateStatus(fechaVencimiento);
+    const status = this.calculateStatus(fechaCaducidad);
 
     let message: string;
     let priority: 'low' | 'medium' | 'high' | 'critical';
@@ -106,8 +106,8 @@ export class StatusCalculatorService {
   /**
    * Determina si un registro necesita alerta
    */
-  needsAlert(fechaVencimiento: Date | null): boolean {
-    const info = this.getStatusInfo(fechaVencimiento);
+  needsAlert(fechaCaducidad: Date | null): boolean {
+    const info = this.getStatusInfo(fechaCaducidad);
     return (
       info.priority === 'medium' ||
       info.priority === 'high' ||
@@ -118,7 +118,7 @@ export class StatusCalculatorService {
   /**
    * Obtiene estadísticas de estados para un conjunto de registros
    */
-  getStatusStatistics(fechasVencimiento: (Date | null)[]): {
+  getStatusStatistics(fechasCaducidad: (Date | null)[]): {
     total: number;
     activos: number;
     porVencer: number;
@@ -126,14 +126,14 @@ export class StatusCalculatorService {
     criticos: number;
   } {
     const stats = {
-      total: fechasVencimiento.length,
+      total: fechasCaducidad.length,
       activos: 0,
       porVencer: 0,
       vencidos: 0,
       criticos: 0,
     };
 
-    fechasVencimiento.forEach((fecha) => {
+    fechasCaducidad.forEach((fecha) => {
       const info = this.getStatusInfo(fecha);
 
       switch (info.status) {

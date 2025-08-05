@@ -39,7 +39,7 @@ export class Record {
   ubicacion: string;
 
   @Column({ type: 'date', nullable: true })
-  fecha_vencimiento: Date;
+  fecha_caducidad: Date;
 
   @Column({ nullable: true })
   estado_actual: string;

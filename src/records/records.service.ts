@@ -43,22 +43,19 @@ export class RecordsService {
     }
 
     // Validar fechas si ambas existen
-    if (
-      createRecordDto.fecha_instalacion &&
-      createRecordDto.fecha_vencimiento
-    ) {
+    if (createRecordDto.fecha_instalacion && createRecordDto.fecha_caducidad) {
       const instalacion = new Date(String(createRecordDto.fecha_instalacion));
-      const vencimiento = new Date(String(createRecordDto.fecha_vencimiento));
-      if (vencimiento <= instalacion) {
+      const caducidad = new Date(String(createRecordDto.fecha_caducidad));
+      if (caducidad <= instalacion) {
         throw new BadRequestException(
-          'La fecha de vencimiento debe ser posterior a la fecha de instalación',
+          'La fecha de caducidad debe ser posterior a la fecha de instalación',
         );
       }
     }
 
-    // Calcular vencimiento si se proporcionan años/meses de vida útil
-    let fechaVencimiento = createRecordDto.fecha_vencimiento
-      ? new Date(String(createRecordDto.fecha_vencimiento))
+    // Calcular caducidad si se proporcionan años/meses de vida útil
+    let fechaCaducidad = createRecordDto.fecha_caducidad
+      ? new Date(String(createRecordDto.fecha_caducidad))
       : undefined;
 
     if (
@@ -71,14 +68,14 @@ export class RecordsService {
       const anios = createRecordDto.fv_anios || 0;
       const meses = createRecordDto.fv_meses || 0;
 
-      fechaVencimiento = new Date(fechaInstalacion);
-      fechaVencimiento.setFullYear(fechaVencimiento.getFullYear() + anios);
-      fechaVencimiento.setMonth(fechaVencimiento.getMonth() + meses);
+      fechaCaducidad = new Date(fechaInstalacion);
+      fechaCaducidad.setFullYear(fechaCaducidad.getFullYear() + anios);
+      fechaCaducidad.setMonth(fechaCaducidad.getMonth() + meses);
     }
 
     const record = this.recordRepository.create({
       ...createRecordDto,
-      fecha_vencimiento: fechaVencimiento,
+      fecha_caducidad: fechaCaducidad,
       estado_actual: createRecordDto.estado_actual || 'ACTIVO',
     });
 
@@ -103,21 +100,21 @@ export class RecordsService {
     if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
     if (query.seec) whereConditions.seec = query.seec;
 
-    // Rango de fechas de vencimiento
-    if (query.fecha_vencimiento_desde && query.fecha_vencimiento_hasta) {
-      whereConditions.fecha_vencimiento = Between(
-        new Date(String(query.fecha_vencimiento_desde)),
-        new Date(String(query.fecha_vencimiento_hasta)),
+    // Rango de fechas de caducidad
+    if (query.fecha_caducidad_desde && query.fecha_caducidad_hasta) {
+      whereConditions.fecha_caducidad = Between(
+        new Date(String(query.fecha_caducidad_desde)),
+        new Date(String(query.fecha_caducidad_hasta)),
       );
-    } else if (query.fecha_vencimiento_desde) {
-      whereConditions.fecha_vencimiento = Between(
-        new Date(String(query.fecha_vencimiento_desde)),
+    } else if (query.fecha_caducidad_desde) {
+      whereConditions.fecha_caducidad = Between(
+        new Date(String(query.fecha_caducidad_desde)),
         new Date('2099-12-31'),
       );
-    } else if (query.fecha_vencimiento_hasta) {
-      whereConditions.fecha_vencimiento = Between(
+    } else if (query.fecha_caducidad_hasta) {
+      whereConditions.fecha_caducidad = Between(
         new Date('1900-01-01'),
-        new Date(String(query.fecha_vencimiento_hasta)),
+        new Date(String(query.fecha_caducidad_hasta)),
       );
     }
 
@@ -184,22 +181,22 @@ export class RecordsService {
     }
     const fechaInstalacion =
       updateRecordDto.fecha_instalacion || record.fecha_instalacion;
-    const fechaVencimiento =
-      updateRecordDto.fecha_vencimiento || record.fecha_vencimiento;
+    const fechaCaducidad =
+      updateRecordDto.fecha_caducidad || record.fecha_caducidad;
 
-    if (fechaInstalacion && fechaVencimiento) {
+    if (fechaInstalacion && fechaCaducidad) {
       const instalacion = new Date(String(fechaInstalacion));
-      const vencimiento = new Date(String(fechaVencimiento));
-      if (vencimiento <= instalacion) {
+      const caducidad = new Date(String(fechaCaducidad));
+      if (caducidad <= instalacion) {
         throw new BadRequestException(
-          'La fecha de vencimiento debe ser posterior a la fecha de instalación',
+          'La fecha de caducidad debe ser posterior a la fecha de instalación',
         );
       }
     }
 
-    let nuevaFechaVencimiento = updateRecordDto.fecha_vencimiento
-      ? new Date(String(updateRecordDto.fecha_vencimiento))
-      : record.fecha_vencimiento;
+    let nuevaFechaCaducidad = updateRecordDto.fecha_caducidad
+      ? new Date(String(updateRecordDto.fecha_caducidad))
+      : record.fecha_caducidad;
 
     if (
       fechaInstalacion &&
@@ -210,19 +207,17 @@ export class RecordsService {
       const meses = updateRecordDto.fv_meses ?? record.fv_meses ?? 0;
 
       if (anios > 0 || meses > 0) {
-        nuevaFechaVencimiento = new Date(fechaInstalacion);
-        nuevaFechaVencimiento.setFullYear(
-          nuevaFechaVencimiento.getFullYear() + anios,
+        nuevaFechaCaducidad = new Date(fechaInstalacion);
+        nuevaFechaCaducidad.setFullYear(
+          nuevaFechaCaducidad.getFullYear() + anios,
         );
-        nuevaFechaVencimiento.setMonth(
-          nuevaFechaVencimiento.getMonth() + meses,
-        );
+        nuevaFechaCaducidad.setMonth(nuevaFechaCaducidad.getMonth() + meses);
       }
     }
 
     await this.recordRepository.update(id, {
       ...updateRecordDto,
-      fecha_vencimiento: nuevaFechaVencimiento,
+      fecha_caducidad: nuevaFechaCaducidad,
     });
 
     return await this.findOne(id);
@@ -246,10 +241,10 @@ export class RecordsService {
 
     return await this.recordRepository.find({
       where: {
-        fecha_vencimiento: Between(new Date(), futureDate),
+        fecha_caducidad: Between(new Date(), futureDate),
         estado_actual: 'ACTIVO',
       },
-      order: { fecha_vencimiento: 'ASC' },
+      order: { fecha_caducidad: 'ASC' },
     });
   }
 
@@ -259,10 +254,10 @@ export class RecordsService {
 
     return await this.recordRepository.find({
       where: {
-        fecha_vencimiento: Between(new Date('1900-01-01'), today),
+        fecha_caducidad: Between(new Date('1900-01-01'), today),
         estado_actual: 'ACTIVO',
       },
-      order: { fecha_vencimiento: 'ASC' },
+      order: { fecha_caducidad: 'ASC' },
     });
   }
 
@@ -274,7 +269,7 @@ export class RecordsService {
     });
 
     const porVencer = await this.recordRepository.count({
-      where: { estado_actual: 'POR_VENCER' }, 
+      where: { estado_actual: 'POR_VENCER' },
     });
 
     const vencidos = await this.recordRepository.count({

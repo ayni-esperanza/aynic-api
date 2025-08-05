@@ -13,14 +13,14 @@ interface ObjectWithInstallationDate {
 }
 
 /**
- * Validador para verificar que la fecha de vencimiento sea posterior a la fecha de instalación
+ * Validador para verificar que la fecha de caducidad sea posterior a la fecha de instalación
  */
 @ValidatorConstraint({ name: 'isAfterInstallationDate', async: false })
 export class IsAfterInstallationDateConstraint
   implements ValidatorConstraintInterface
 {
-  validate(fechaVencimiento: unknown, args: ValidationArguments): boolean {
-    if (!fechaVencimiento) return true; // Si no hay fecha de vencimiento, no validar
+  validate(fechaCaducidad: unknown, args: ValidationArguments): boolean {
+    if (!fechaCaducidad) return true; // Si no hay fecha de caducidad, no validar
 
     const object = args.object as ObjectWithInstallationDate;
     const fechaInstalacion = object.fecha_instalacion;
@@ -29,26 +29,26 @@ export class IsAfterInstallationDateConstraint
 
     try {
       const instalacion = new Date(fechaInstalacion);
-      const vencimiento = new Date(fechaVencimiento as string | Date);
+      const caducidad = new Date(fechaCaducidad as string | Date);
 
       // Verificar que las fechas sean válidas
-      if (isNaN(instalacion.getTime()) || isNaN(vencimiento.getTime())) {
+      if (isNaN(instalacion.getTime()) || isNaN(caducidad.getTime())) {
         return false;
       }
 
-      return vencimiento > instalacion;
+      return caducidad > instalacion;
     } catch {
       return false;
     }
   }
 
   defaultMessage(): string {
-    return 'La fecha de vencimiento debe ser posterior a la fecha de instalación';
+    return 'La fecha de caducidad debe ser posterior a la fecha de instalación';
   }
 }
 
 /**
- * Decorador para validar fechas de vencimiento
+ * Decorador para validar fechas de caducidad
  */
 export function IsAfterInstallationDate(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {

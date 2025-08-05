@@ -61,15 +61,15 @@ export class AlertGeneratorService {
     try {
       const startTime = Date.now();
 
-      // Obtener todos los registros con fecha de vencimiento
+      // Obtener todos los registros con fecha de caducidad
       const records = await this.recordRepository.find({
         where: {
-          fecha_vencimiento: Not(IsNull()),
+          fecha_caducidad: Not(IsNull()),
         },
         select: [
           'id',
           'codigo',
-          'fecha_vencimiento',
+          'fecha_caducidad',
           'estado_actual',
           'cliente',
         ],
@@ -77,7 +77,7 @@ export class AlertGeneratorService {
 
       if (records.length === 0) {
         this.logger.log(
-          'No hay registros con fecha de vencimiento para evaluar',
+          'No hay registros con fecha de caducidad para evaluar',
         );
         return;
       }
@@ -86,7 +86,7 @@ export class AlertGeneratorService {
 
       for (const record of records) {
         const statusInfo = this.statusCalculator.getStatusInfo(
-          record.fecha_vencimiento,
+          record.fecha_caducidad,
         );
 
         // Solo crear alertas para registros que necesitan atención
@@ -133,7 +133,7 @@ export class AlertGeneratorService {
       metadata: JSON.stringify({
         codigo: record.codigo,
         cliente: record.cliente,
-        fecha_vencimiento: record.fecha_vencimiento,
+        fecha_caducidad: record.fecha_caducidad,
         dias_restantes: statusInfo.daysRemaining,
         estado_actual: record.estado_actual,
       }),
@@ -244,16 +244,16 @@ export class AlertGeneratorService {
 
     const records = await this.recordRepository.find({
       where: {
-        fecha_vencimiento: Not(IsNull()),
+        fecha_caducidad: Not(IsNull()),
       },
-      select: ['id', 'codigo', 'fecha_vencimiento', 'estado_actual', 'cliente'],
+      select: ['id', 'codigo', 'fecha_caducidad', 'estado_actual', 'cliente'],
     });
 
     const generatedAlerts: Alert[] = [];
 
     for (const record of records) {
       const statusInfo = this.statusCalculator.getStatusInfo(
-        record.fecha_vencimiento,
+        record.fecha_caducidad,
       );
 
       if (

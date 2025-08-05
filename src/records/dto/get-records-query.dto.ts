@@ -39,22 +39,22 @@ export class GetRecordsQueryDto extends PaginationDto {
   seec?: string;
 
   @ApiPropertyOptional({
-    description: 'Fecha de vencimiento desde',
+    description: 'Fecha de caducidad desde',
     type: String,
     format: 'date',
   })
   @IsOptional()
   @IsDateString()
-  fecha_vencimiento_desde?: string;
+  fecha_caducidad_desde?: string;
 
   @ApiPropertyOptional({
-    description: 'Fecha de vencimiento hasta',
+    description: 'Fecha de caducidad hasta',
     type: String,
     format: 'date',
   })
   @IsOptional()
   @IsDateString()
-  fecha_vencimiento_hasta?: string;
+  fecha_caducidad_hasta?: string;
 
   @ApiPropertyOptional({
     description: 'Fecha de instalación desde',

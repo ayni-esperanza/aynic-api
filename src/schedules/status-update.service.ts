@@ -44,17 +44,17 @@ export class StatusUpdateService {
     try {
       const startTime = Date.now();
 
-      // Obtener todos los registros que SÍ tienen fecha de vencimiento
+      // Obtener todos los registros que SÍ tienen fecha de caducidad
       const recordsWithDate = await this.recordRepository.find({
         where: {
-          fecha_vencimiento: Not(IsNull()),
+          fecha_caducidad: Not(IsNull()),
         },
-        select: ['id', 'codigo', 'fecha_vencimiento', 'estado_actual'],
+        select: ['id', 'codigo', 'fecha_caducidad', 'estado_actual'],
       });
 
       if (recordsWithDate.length === 0) {
         this.logger.log(
-          ' No se encontraron registros con fecha de vencimiento',
+          ' No se encontraron registros con fecha de caducidad',
         );
         return;
       }
@@ -71,7 +71,7 @@ export class StatusUpdateService {
       for (const record of recordsWithDate) {
         const currentStatus = record.estado_actual || 'ACTIVO';
         const calculatedStatus = this.statusCalculator.calculateStatus(
-          record.fecha_vencimiento,
+          record.fecha_caducidad,
         );
         const calculatedStatusString = calculatedStatus.toString();
 
@@ -130,9 +130,9 @@ export class StatusUpdateService {
 
     const recordsWithDate = await this.recordRepository.find({
       where: {
-        fecha_vencimiento: Not(IsNull()),
+        fecha_caducidad: Not(IsNull()),
       },
-      select: ['id', 'codigo', 'fecha_vencimiento', 'estado_actual'],
+      select: ['id', 'codigo', 'fecha_caducidad', 'estado_actual'],
     });
 
     let updatedCount = 0;
@@ -146,11 +146,11 @@ export class StatusUpdateService {
     for (const record of recordsWithDate) {
       const currentStatus = record.estado_actual || 'ACTIVO';
       const calculatedStatus = this.statusCalculator.calculateStatus(
-        record.fecha_vencimiento,
+        record.fecha_caducidad,
       );
       const calculatedStatusString = calculatedStatus.toString();
       const statusInfo = this.statusCalculator.getStatusInfo(
-        record.fecha_vencimiento,
+        record.fecha_caducidad,
       );
 
       // Actualizar siempre en modo manual (para forzar sincronización)
@@ -192,15 +192,15 @@ export class StatusUpdateService {
     criticos: number;
     ultimaActualizacion: Date | null;
   }> {
-    // Obtener registros con fecha de vencimiento
+    // Obtener registros con fecha de caducidad
     const recordsWithDate = await this.recordRepository.find({
       where: {
-        fecha_vencimiento: Not(IsNull()),
+        fecha_caducidad: Not(IsNull()),
       },
-      select: ['fecha_vencimiento'],
+      select: ['fecha_caducidad'],
     });
 
-    const fechas = recordsWithDate.map((r) => r.fecha_vencimiento);
+    const fechas = recordsWithDate.map((r) => r.fecha_caducidad);
     const stats = this.statusCalculator.getStatusStatistics(fechas);
 
     return {

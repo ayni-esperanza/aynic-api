@@ -123,17 +123,17 @@ export class CreateRecordDto {
   @MaxLength(200, { message: 'La ubicación no puede exceder 200 caracteres' })
   ubicacion?: string;
 
-  @ApiProperty({ description: 'Fecha de vencimiento', required: false })
+  @ApiProperty({ description: 'Fecha de caducidad', required: false })
   @IsOptional()
   @IsDateString(
     {},
     {
-      message: 'fecha_vencimiento debe ser una fecha válida (YYYY-MM-DD o ISO)',
+      message: 'fecha_caducidad debe ser una fecha válida (YYYY-MM-DD o ISO)',
     },
   )
   @IsReasonableFutureDate()
   @IsAfterInstallationDate()
-  fecha_vencimiento?: String;
+  fecha_caducidad?: String;
 
   @ApiProperty({
     description: 'Estado actual del registro',

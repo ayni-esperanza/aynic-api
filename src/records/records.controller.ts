@@ -139,7 +139,7 @@ export class RecordsController {
         longitud: { min: 0, max: 10000 },
       },
       validaciones_fechas: {
-        fecha_vencimiento_debe_ser_posterior_a_instalacion: true,
+        fecha_caducidad_debe_ser_posterior_a_instalacion: true,
         maximo_anos_futuro: 50,
         maximo_anos_pasado: 100,
       },
