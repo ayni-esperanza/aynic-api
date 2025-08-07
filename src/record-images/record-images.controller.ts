@@ -229,10 +229,42 @@ export class AdminImagesController {
 
   @Get('statistics')
   @Roles('ADMINISTRADOR')
-  @ApiOperation({ summary: 'Obtener estadísticas de imágenes' })
-  @ApiResponse({ status: 200, description: 'Estadísticas de imágenes' })
+  @ApiOperation({ summary: 'Obtener estadísticas de imágenes con compresión' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Estadísticas de imágenes incluyendo información de compresión',
+    schema: {
+      type: 'object',
+      properties: {
+        total: { type: 'number' },
+        totalSize: { type: 'number' },
+        totalOriginalSize: { type: 'number' },
+        totalSavings: { type: 'number' },
+        averageCompressionRatio: { type: 'number' },
+        byMimeType: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              mime_type: { type: 'string' },
+              count: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+  })
   async getImageStatistics() {
-    return this.recordImagesService.getImageStatistics();
+    const stats = await this.recordImagesService.getImageStatistics();
+
+    return {
+      ...stats,
+      totalSizeFormatted: `${(stats.totalSize / 1024 / 1024).toFixed(2)} MB`,
+      totalOriginalSizeFormatted: `${(stats.totalOriginalSize / 1024 / 1024).toFixed(2)} MB`,
+      totalSavingsFormatted: `${(stats.totalSavings / 1024 / 1024).toFixed(2)} MB`,
+      averageCompressionRatioFormatted: `${stats.averageCompressionRatio.toFixed(1)}%`,
+    };
   }
 
   @Delete('cleanup-orphans')

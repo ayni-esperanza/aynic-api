@@ -8,11 +8,12 @@ import {
   AdminImagesController,
 } from './record-images.controller';
 import { R2Service } from './services/r2.service';
+import { ImageCompressionService } from './services/image-compression.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([RecordImage, RecordEntity])],
   controllers: [RecordImagesController, AdminImagesController],
-  providers: [RecordImagesService, R2Service],
-  exports: [RecordImagesService, R2Service],
+  providers: [RecordImagesService, R2Service, ImageCompressionService],
+  exports: [RecordImagesService, R2Service, ImageCompressionService],
 })
 export class RecordImagesModule {}

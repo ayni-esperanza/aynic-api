@@ -29,7 +29,7 @@ export class RecordImagesService {
   ) {}
 
   /**
-   * Subir imagen para un record
+   * Subir imagen para un record con compresión automática
    */
   async uploadImage(
     recordId: number,
@@ -58,20 +58,20 @@ export class RecordImagesService {
     }
 
     try {
-      // Subir archivo a R2
+      // Subir archivo a R2 con compresión automática
       const uploadResult = await this.r2Service.uploadFile(
         file,
         recordId,
         userId,
       );
 
-      // Crear registro en BD
+      // Crear registro en BD con información de compresión
       const recordImage = this.recordImageRepository.create({
         record_id: recordId,
         filename: uploadResult.filename,
         original_name: file.originalname,
         file_size: uploadResult.size,
-        mime_type: file.mimetype,
+        mime_type: `image/${uploadResult.filename.split('.').pop()}`, // Usar formato comprimido
         r2_key: uploadResult.key,
         description: uploadImageDto.description,
         uploaded_by: userId,
@@ -80,10 +80,17 @@ export class RecordImagesService {
       const savedImage = await this.recordImageRepository.save(recordImage);
 
       this.logger.log(
-        `Imagen subida para record ${recordId}: ${uploadResult.key}`,
+        `Imagen comprimida y subida para record ${recordId}: ${uploadResult.key} ` +
+          `(${(uploadResult.originalSize / 1024).toFixed(1)}KB → ${(uploadResult.size / 1024).toFixed(1)}KB, ` +
+          `${uploadResult.compressionRatio.toFixed(1)}% reducción)`,
       );
 
-      return this.mapToResponseDto(savedImage, uploadResult.publicUrl);
+      return this.mapToResponseDto(savedImage, uploadResult.publicUrl, {
+        originalSize: uploadResult.originalSize,
+        compressionRatio: uploadResult.compressionRatio,
+        dimensions: uploadResult.dimensions,
+        quality: uploadResult.quality,
+      });
     } catch (error) {
       this.logger.error(
         `Error al subir imagen para record ${recordId}:`,
@@ -109,7 +116,36 @@ export class RecordImagesService {
     // Generar URL de acceso
     const imageUrl = await this.getImageUrl(recordImage);
 
-    return this.mapToResponseDto(recordImage, imageUrl);
+    // Obtener información de compresión si está disponible
+    let compressionInfo:
+      | {
+          originalSize: number;
+          compressionRatio: number;
+          dimensions: { width: number; height: number };
+          quality: number;
+        }
+      | undefined = undefined;
+
+    try {
+      const metadata = await this.r2Service.getFileMetadata(recordImage.r2_key);
+      if (metadata.compression.originalSize > 0) {
+        compressionInfo = {
+          originalSize: metadata.compression.originalSize,
+          compressionRatio: metadata.compression.compressionRatio,
+          dimensions: {
+            width: metadata.compression.width,
+            height: metadata.compression.height,
+          },
+          quality: metadata.compression.quality,
+        };
+      }
+    } catch (error) {
+      this.logger.warn(
+        `No se pudieron obtener metadatos de compresión para ${recordImage.r2_key}`,
+      );
+    }
+
+    return this.mapToResponseDto(recordImage, imageUrl, compressionInfo);
   }
 
   /**
@@ -141,9 +177,38 @@ export class RecordImagesService {
 
     const imageUrl = await this.getImageUrl(updatedImage!);
 
-    this.logger.log(`Metadatos de imagen actualizados para record ${recordId}`);
+    // Obtener información de compresión
+    let compressionInfo:
+      | {
+          originalSize: number;
+          compressionRatio: number;
+          dimensions: { width: number; height: number };
+          quality: number;
+        }
+      | undefined = undefined;
 
-    return this.mapToResponseDto(updatedImage!, imageUrl);
+    try {
+      const metadata = await this.r2Service.getFileMetadata(recordImage.r2_key);
+      if (metadata.compression.originalSize > 0) {
+        compressionInfo = {
+          originalSize: metadata.compression.originalSize,
+          compressionRatio: metadata.compression.compressionRatio,
+          dimensions: {
+            width: metadata.compression.width,
+            height: metadata.compression.height,
+          },
+          quality: metadata.compression.quality,
+        };
+      }
+    } catch (error) {
+      // Continuar sin información de compresión
+    }
+
+    this.logger.log(
+      `Metadatos de imagen actualizados para record ${recordId}`,
+    );
+
+    return this.mapToResponseDto(updatedImage!, imageUrl, compressionInfo);
   }
 
   /**
@@ -184,7 +249,7 @@ export class RecordImagesService {
   }
 
   /**
-   * Reemplazar imagen existente
+   * Reemplazar imagen existente con compresión
    */
   async replaceRecordImage(
     recordId: number,
@@ -202,7 +267,7 @@ export class RecordImagesService {
       }
     }
 
-    // Subir nueva imagen
+    // Subir nueva imagen con compresión
     return this.uploadImage(recordId, file, uploadImageDto, userId);
   }
 
@@ -220,7 +285,35 @@ export class RecordImagesService {
 
     for (const image of images) {
       const imageUrl = await this.getImageUrl(image);
-      result.push(this.mapToResponseDto(image, imageUrl));
+
+      // Obtener información de compresión si está disponible
+      let compressionInfo:
+        | {
+            originalSize: number;
+            compressionRatio: number;
+            dimensions: { width: number; height: number };
+            quality: number;
+          }
+        | undefined = undefined;
+
+      try {
+        const metadata = await this.r2Service.getFileMetadata(image.r2_key);
+        if (metadata.compression.originalSize > 0) {
+          compressionInfo = {
+            originalSize: metadata.compression.originalSize,
+            compressionRatio: metadata.compression.compressionRatio,
+            dimensions: {
+              width: metadata.compression.width,
+              height: metadata.compression.height,
+            },
+            quality: metadata.compression.quality,
+          };
+        }
+      } catch (error) {
+          
+      }
+
+      result.push(this.mapToResponseDto(image, imageUrl, compressionInfo));
     }
 
     return result;
@@ -276,13 +369,19 @@ export class RecordImagesService {
   }
 
   /**
-   * Mapear entidad a DTO de respuesta
+   * Mapear entidad a DTO de respuesta con información de compresión
    */
   private mapToResponseDto(
     recordImage: RecordImage,
     imageUrl: string,
+    compressionInfo?: {
+      originalSize: number;
+      compressionRatio: number;
+      dimensions: { width: number; height: number };
+      quality: number;
+    },
   ): ImageResponseDto {
-    return {
+    const response: ImageResponseDto = {
       id: recordImage.id,
       record_id: recordImage.record_id,
       filename: recordImage.filename,
@@ -294,6 +393,23 @@ export class RecordImagesService {
       uploaded_by: recordImage.uploaded_by,
       image_url: imageUrl,
     };
+
+    // Agregar información de compresión si está disponible
+    if (compressionInfo) {
+      (response as any).compression_info = {
+        original_size: compressionInfo.originalSize,
+        compressed_size: recordImage.file_size,
+        compression_ratio: compressionInfo.compressionRatio,
+        dimensions: compressionInfo.dimensions,
+        quality: compressionInfo.quality,
+        savings_kb: Math.round(
+          (compressionInfo.originalSize - recordImage.file_size) / 1024,
+        ),
+        savings_percentage: compressionInfo.compressionRatio.toFixed(1) + '%',
+      };
+    }
+
+    return response;
   }
 
   /**
@@ -308,12 +424,21 @@ export class RecordImagesService {
   }
 
   /**
-   * Obtener estadísticas de imágenes
+   * Obtener estadísticas de imágenes con información de compresión
    */
   async getImageStatistics(): Promise<{
     total: number;
     totalSize: number;
+    totalOriginalSize: number;
+    totalSavings: number;
+    averageCompressionRatio: number;
     byMimeType: Array<{ mime_type: string; count: number }>;
+    storageEfficiency: {
+      currentStorageUsed: number;
+      originalStorageWouldBe: number;
+      spaceSaved: number;
+      efficiencyPercentage: number;
+    };
   }> {
     const images = await this.recordImageRepository.find({
       where: { is_active: true },
@@ -321,6 +446,32 @@ export class RecordImagesService {
 
     const total = images.length;
     const totalSize = images.reduce((sum, img) => sum + img.file_size, 0);
+
+    // Obtener información de compresión de R2 metadatos
+    let totalOriginalSize = 0;
+    let totalSavings = 0;
+    let totalCompressionRatio = 0;
+    let imagesWithCompressionInfo = 0;
+
+    for (const image of images) {
+      try {
+        const metadata = await this.r2Service.getFileMetadata(image.r2_key);
+        if (metadata.compression.originalSize > 0) {
+          totalOriginalSize += metadata.compression.originalSize;
+          totalSavings +=
+            metadata.compression.originalSize -
+            metadata.compression.compressedSize;
+          totalCompressionRatio += metadata.compression.compressionRatio;
+          imagesWithCompressionInfo++;
+        } else {
+          // Si no hay metadatos de compresión, usar el tamaño actual como original
+          totalOriginalSize += image.file_size;
+        }
+      } catch (error) {
+        // Si no hay metadatos de compresión, usar el tamaño actual
+        totalOriginalSize += image.file_size;
+      }
+    }
 
     // Agrupar por tipo MIME
     const mimeTypeMap = new Map<string, number>();
@@ -335,10 +486,65 @@ export class RecordImagesService {
       }),
     );
 
+    const averageCompressionRatio =
+      imagesWithCompressionInfo > 0
+        ? totalCompressionRatio / imagesWithCompressionInfo
+        : 0;
+
+    const storageEfficiency = {
+      currentStorageUsed: totalSize,
+      originalStorageWouldBe: totalOriginalSize,
+      spaceSaved: totalSavings,
+      efficiencyPercentage:
+        totalOriginalSize > 0 ? (totalSavings / totalOriginalSize) * 100 : 0,
+    };
+
+    this.logger.log(
+      `Estadísticas de compresión: ${total} imágenes, ` +
+        `${(totalSavings / 1024 / 1024).toFixed(2)}MB ahorrados ` +
+        `(${storageEfficiency.efficiencyPercentage.toFixed(1)}% eficiencia)`,
+    );
+
     return {
       total,
       totalSize,
+      totalOriginalSize,
+      totalSavings,
+      averageCompressionRatio,
       byMimeType,
+      storageEfficiency,
+    };
+  }
+
+  /**
+   * Optimizar imagen existente (re-comprimir con nuevos parámetros)
+   */
+  async optimizeExistingImage(recordId: number): Promise<{
+    before: { size: number; url: string };
+    after: { size: number; url: string };
+    savings: number;
+  }> {
+    const recordImage = await this.recordImageRepository.findOne({
+      where: { record_id: recordId, is_active: true },
+    });
+
+    if (!recordImage) {
+      throw new NotFoundException(
+        `No se encontró imagen para el record ${recordId}`,
+      );
+    }
+
+    const beforeSize = recordImage.file_size;
+    const beforeUrl = await this.getImageUrl(recordImage);
+
+    this.logger.log(
+      `Optimización de imagen existente para record ${recordId}`,
+    );
+
+    return {
+      before: { size: beforeSize, url: beforeUrl },
+      after: { size: beforeSize, url: beforeUrl }, // Mismo por ahora
+      savings: 0,
     };
   }
 }
