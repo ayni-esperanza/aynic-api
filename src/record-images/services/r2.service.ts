@@ -71,7 +71,7 @@ export class R2Service {
       this.configService.get<string>('COMPRESSION_ENABLED') === 'true';
 
     if (!accountId || !accessKeyId || !secretAccessKey) {
-      this.logger.error('❌ Credenciales de R2 no configuradas correctamente');
+      this.logger.error('Credenciales de R2 no configuradas correctamente');
       throw new Error('R2 credentials not configured');
     }
 
@@ -85,11 +85,11 @@ export class R2Service {
       },
     });
 
-    this.logger.log(`🚀 R2 Service inicializado`);
-    this.logger.log(`📦 Bucket: ${this.bucketName}`);
-    this.logger.log(`🌐 URL pública: ${this.publicUrl || 'No configurada'}`);
+    this.logger.log(`R2 Service inicializado`);
+    this.logger.log(`Bucket: ${this.bucketName}`);
+    this.logger.log(`URL pública: ${this.publicUrl || 'No configurada'}`);
     this.logger.log(
-      `🗜️  Compresión: ${this.compressionEnabled ? 'HABILITADA' : 'DESHABILITADA'}`,
+      `Compresión: ${this.compressionEnabled ? 'HABILITADA' : 'DESHABILITADA'}`,
     );
   }
 
@@ -105,7 +105,7 @@ export class R2Service {
       const originalSize = file.buffer.length;
 
       this.logger.debug(
-        `📤 Iniciando upload para record ${recordId}: ${file.originalname} (${(originalSize / 1024).toFixed(1)}KB)`,
+        `Iniciando upload para record ${recordId}: ${file.originalname} (${(originalSize / 1024).toFixed(1)}KB)`,
       );
 
       // Validar archivo original
@@ -119,7 +119,7 @@ export class R2Service {
       // Aplicar compresión si está habilitada
       if (this.compressionEnabled) {
         this.logger.debug(
-          `🗜️  Comprimiendo imagen: ${(originalSize / 1024).toFixed(1)}KB`,
+          `Comprimiendo imagen: ${(originalSize / 1024).toFixed(1)}KB`,
         );
 
         compressionResult = await this.compressionService.compressImage(file, {
@@ -139,13 +139,13 @@ export class R2Service {
         finalFormat = compressionResult.format;
 
         this.logger.log(
-          `📊 Compresión exitosa: ${(originalSize / 1024).toFixed(1)}KB → ${(finalBuffer.length / 1024).toFixed(1)}KB ` +
+          `Compresión exitosa: ${(originalSize / 1024).toFixed(1)}KB → ${(finalBuffer.length / 1024).toFixed(1)}KB ` +
             `(${compressionResult.compressionRatio.toFixed(1)}% reducción, ${finalFormat.toUpperCase()}, ` +
             `${compressionResult.width}x${compressionResult.height}, Q${compressionResult.quality})`,
         );
       } else {
         this.logger.debug(
-          '⚠️  Compresión deshabilitada, usando archivo original',
+          'Compresión deshabilitada, usando archivo original',
         );
       }
 
@@ -212,7 +212,7 @@ export class R2Service {
         : await this.getSignedDownloadUrl(key);
 
       this.logger.log(
-        `✅ Upload completado en ${uploadDuration}ms: ${key} ` +
+        `Upload completado en ${uploadDuration}ms: ${key} ` +
           `(${(finalBuffer.length / 1024).toFixed(1)}KB, ${finalFormat.toUpperCase()})`,
       );
 
@@ -232,7 +232,7 @@ export class R2Service {
       };
     } catch (error) {
       this.logger.error(
-        `❌ Error al subir archivo: ${error.message}`,
+        `Error al subir archivo: ${error.message}`,
         error.stack,
       );
       throw error;
@@ -257,12 +257,12 @@ export class R2Service {
       });
 
       this.logger.debug(
-        `🔗 URL firmada generada para ${key} (expira en ${expiresIn}s)`,
+        `URL firmada generada para ${key} (expira en ${expiresIn}s)`,
       );
       return signedUrl;
     } catch (error) {
       this.logger.error(
-        `❌ Error al generar URL firmada para ${key}: ${error.message}`,
+        `Error al generar URL firmada para ${key}: ${error.message}`,
       );
       throw error;
     }
@@ -289,7 +289,7 @@ export class R2Service {
       return signedUrl;
     } catch (error) {
       this.logger.error(
-        `❌ Error al generar URL de descarga: ${error.message}`,
+        `Error al generar URL de descarga: ${error.message}`,
       );
       throw error;
     }
@@ -306,10 +306,10 @@ export class R2Service {
       });
 
       await this.s3Client.send(deleteCommand);
-      this.logger.log(`🗑️  Archivo eliminado: ${key}`);
+      this.logger.log(`Archivo eliminado: ${key}`);
     } catch (error) {
       this.logger.error(
-        `❌ Error al eliminar archivo ${key}: ${error.message}`,
+        `Error al eliminar archivo ${key}: ${error.message}`,
       );
       throw error;
     }
@@ -329,13 +329,13 @@ export class R2Service {
         await this.deleteFile(key);
         deleted.push(key);
       } catch (error) {
-        this.logger.error(`❌ Error eliminando ${key}: ${error.message}`);
+        this.logger.error(`Error eliminando ${key}: ${error.message}`);
         failed.push(key);
       }
     }
 
     this.logger.log(
-      `🗑️  Eliminación múltiple: ${deleted.length} exitosos, ${failed.length} fallos`,
+      `Eliminación múltiple: ${deleted.length} exitosos, ${failed.length} fallos`,
     );
 
     return { deleted, failed };
@@ -393,7 +393,7 @@ export class R2Service {
       };
     } catch (error) {
       this.logger.error(
-        `❌ Error al obtener metadatos de ${key}: ${error.message}`,
+        `Error al obtener metadatos de ${key}: ${error.message}`,
       );
       throw error;
     }
@@ -429,7 +429,7 @@ export class R2Service {
         etag: obj.ETag || '',
       }));
     } catch (error) {
-      this.logger.error(`❌ Error listando archivos: ${error.message}`);
+      this.logger.error(`Error listando archivos: ${error.message}`);
       throw error;
     }
   }
@@ -469,8 +469,6 @@ export class R2Service {
       let totalCompressionRatio = 0;
       let filesWithCompression = 0;
 
-      // Nota: Esto podría ser costoso para muchos archivos
-      // En producción, considera cachear esta información
       if (files.length <= 100) {
         // Solo para un número razonable de archivos
         for (const file of files) {
@@ -483,7 +481,7 @@ export class R2Service {
               filesWithCompression++;
             }
           } catch (error) {
-            // Continuar si no se pueden obtener metadatos
+            this.logger.warn(`No se pudieron obtener metadatos para ${file.key}: ${error.message}`);
           }
         }
       }
@@ -499,7 +497,7 @@ export class R2Service {
       };
 
       this.logger.log(
-        `📊 Estadísticas del bucket: ${totalFiles} archivos, ${(totalSize / 1024 / 1024).toFixed(2)}MB total`,
+        `Estadísticas del bucket: ${totalFiles} archivos, ${(totalSize / 1024 / 1024).toFixed(2)}MB total`,
       );
 
       return {
@@ -511,7 +509,7 @@ export class R2Service {
       };
     } catch (error) {
       this.logger.error(
-        `❌ Error obteniendo estadísticas del bucket: ${error.message}`,
+        `Error obteniendo estadísticas del bucket: ${error.message}`,
       );
       throw error;
     }
@@ -521,7 +519,7 @@ export class R2Service {
    * Validar archivo antes de subir (validación más permisiva para compresión)
    */
   private validateFile(file: Express.Multer.File): void {
-    // Tamaño máximo más alto ya que después se comprimirá
+    // Tamaño máximo más alto porque después se comprimirá
     const maxSize = this.configService.get<number>('MAX_FILE_SIZE') || 10485760; // 10MB default
     const allowedTypes = this.configService
       .get<string>('ALLOWED_FILE_TYPES')
@@ -561,7 +559,7 @@ export class R2Service {
   }
 
   /**
-   * Generar URL pública (si está configurada)
+   * Generar URL pública 
    */
   getPublicUrl(key: string): string | null {
     return this.publicUrl ? `${this.publicUrl}/${key}` : null;
@@ -623,7 +621,7 @@ export class R2Service {
     } catch (error) {
       const responseTime = Date.now() - startTime;
 
-      this.logger.error(`❌ Health check falló: ${error.message}`);
+      this.logger.error(`Health check falló: ${error.message}`);
 
       return {
         status: 'unhealthy',
@@ -657,7 +655,7 @@ export class R2Service {
 
       if (dryRun) {
         this.logger.log(
-          `🧹 Dry run: Se encontraron ${oldFiles.length} archivos más antiguos que ${olderThanDays} días`,
+          `Dry run: Se encontraron ${oldFiles.length} archivos más antiguos que ${olderThanDays} días`,
         );
 
         return {
@@ -690,7 +688,7 @@ export class R2Service {
         files: deleteResults.deleted,
       };
     } catch (error) {
-      this.logger.error(`❌ Error en limpieza: ${error.message}`);
+      this.logger.error(`Error en limpieza: ${error.message}`);
       throw error;
     }
   }
