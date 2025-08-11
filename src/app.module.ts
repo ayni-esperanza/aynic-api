@@ -61,17 +61,41 @@ import { RolesGuard } from './auth/guards/roles.guard';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: +(config.get<number>('DB_PORT') ?? 5432),
-        username: config.get('DB_USERNAME'),
-        password: config.get('DB_PASSWORD'),
-        database: config.get('DB_DATABASE'),
-        entities: [User, Record, RecordStatusHistory, Alert, RecordImage],
-        synchronize: true, // solo en desarrollo
-        autoLoadEntities: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>('DB_HOST') ?? 'localhost';
+        const port = +(config.get<number>('DB_PORT') ?? 5432);
+
+        // 1) Bandera explícita por ENV
+        const sslFromEnv = (config.get<string>('DB_SSL') ?? '').toLowerCase();
+
+        // 2) Heurística por host
+        const looksManaged = [
+          'rds.amazonaws.com',
+          'neon.tech',
+          'render.com',
+          'supabase.co',
+          'azure.com',
+          'gcp',
+        ].some((dom) => host.includes(dom));
+
+        // Resultado final: solo true en managed/prod o si DB_SSL=true
+        const enableSSL =
+          sslFromEnv === 'true' || (sslFromEnv !== 'false' && looksManaged);
+
+        return {
+          type: 'postgres',
+          host,
+          port,
+          username: config.get('DB_USERNAME'),
+          password: config.get('DB_PASSWORD'),
+          database: config.get('DB_DATABASE'),
+          entities: [User, Record, RecordStatusHistory, Alert, RecordImage],
+          synchronize: true,
+          autoLoadEntities: true,
+          // En TypeORM/pg, pon booleano false para desactivar SSL
+          ssl: enableSSL ? { rejectUnauthorized: false } : false,
+        };
+      },
     }),
     UsersModule,
     RecordsModule,

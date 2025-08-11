@@ -4,15 +4,61 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { SeedService } from './users/seed.service';
 
+function parseEnvOrigins(envValue?: string): (string | RegExp)[] {
+  if (!envValue) return [];
+  return envValue
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function buildCorsOrigin() {
+  const allowCredentials = process.env.CORS_CREDENTIALS === 'true';
+  const rawEnv = process.env.CORS_ORIGIN?.trim();
+
+  // Caso 1: CORS_ORIGIN="*"  ➜  si credentials=true, usamos origin:true (refleja el origin real)
+  if (rawEnv === '*') {
+    return allowCredentials ? true : '*';
+  }
+
+  // Caso 2: Lista desde ENV o defaults
+  const fromEnv = parseEnvOrigins(process.env.CORS_ORIGIN);
+  const defaults: (string | RegExp)[] = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    /\.vercel\.app$/,
+    /\.trycloudflare\.com$/,
+  ];
+  const allowed = fromEnv.length ? fromEnv : defaults;
+
+  // Función que valida origen vs lista/regex
+  return (
+    origin: string | undefined,
+    cb: (err: Error | null, ok?: boolean) => void,
+  ) => {
+    // Permitir requests sin Origin (curl, Postman, health checks)
+    if (!origin) return cb(null, true);
+
+    const ok = allowed.some((rule) => {
+      if (rule instanceof RegExp) return rule.test(origin);
+      return rule === origin;
+    });
+
+    cb(null, ok);
+  };
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Configuración de CORS
+  const corsOrigin = buildCorsOrigin();
+  const allowCredentials = process.env.CORS_CREDENTIALS === 'true';
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: corsOrigin as any,
+    credentials: allowCredentials,
     methods:
       process.env.CORS_METHODS || 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: process.env.CORS_CREDENTIALS === 'true',
     allowedHeaders: [
       'Origin',
       'X-Requested-With',
@@ -33,19 +79,17 @@ async function bootstrap() {
     ],
   });
 
-  // Configuración global de validación
+  // Validación global
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
+      transformOptions: { enableImplicitConversion: true },
     }),
   );
 
-  // Configuración de Swagger
+  // Swagger
   const config = new DocumentBuilder()
     .setTitle('Aynic API')
     .setDescription(
@@ -62,17 +106,21 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // Inicializar usuarios predefinidos
   const seedService = app.get(SeedService);
   await seedService.createDefaultUsers();
 
-  const port = process.env.PORT ?? 3000;
+  const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
 
-  console.log(`Aplicación ejecutándose en: http://localhost:${port}`);
-  console.log(`Documentación Swagger: http://localhost:${port}/api`);
-  console.log(`CORS habilitado para: ${process.env.CORS_ORIGIN || '*'}`);
-  console.log(`Rate Limiting habilitado`);
+  console.log(`API: http://localhost:${port}`);
+  console.log(`Swagger: http://localhost:${port}/api`);
+  console.log('CORS credentials:', allowCredentials);
+  console.log(
+    'CORS origin mode:',
+    typeof corsOrigin === 'function'
+      ? 'custom-check (ENV list + defaults)'
+      : corsOrigin,
+  );
 }
 
 bootstrap();
