@@ -8,9 +8,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   Repository,
   Like,
+  ILike,
   Between,
   FindManyOptions,
   FindOperator,
+  Raw
 } from 'typeorm';
 import { Record } from './entities/record.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
@@ -90,11 +92,11 @@ export class RecordsService {
 
     const whereConditions: WhereConditions = {};
 
-    if (query.codigo) whereConditions.codigo = Like(`%${query.codigo}%`);
+    if (query.codigo) whereConditions.codigo = ILike(`%${query.codigo}%`);
     if (query.cliente) whereConditions.cliente = Like(`%${query.cliente}%`);
-    if (query.equipo) whereConditions.equipo = Like(`%${query.equipo}%`);
+    if (query.equipo) whereConditions.equipo = ILike(`%${query.equipo}%`);
     if (query.ubicacion)
-      whereConditions.ubicacion = Like(`%${query.ubicacion}%`);
+      whereConditions.ubicacion = ILike(`%${query.ubicacion}%`);
     if (query.estado_actual)
       whereConditions.estado_actual = query.estado_actual;
     if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
