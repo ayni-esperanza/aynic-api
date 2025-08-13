@@ -11,8 +11,7 @@ import {
   ILike,
   Between,
   FindManyOptions,
-  FindOperator,
-  Raw
+  FindOptionsWhere,
 } from 'typeorm';
 import { Record } from './entities/record.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
@@ -22,10 +21,6 @@ import {
   PaginatedResponse,
   PaginationHelper,
 } from '../common/interfaces/paginated-response.interface';
-
-type WhereConditions = {
-  [K in keyof Record]?: Record[K] | FindOperator<Record[K]>;
-};
 
 @Injectable()
 export class RecordsService {
@@ -90,13 +85,15 @@ export class RecordsService {
     const sortBy = query.getSortBy();
     const sortOrder = query.getSortOrder();
 
-    const whereConditions: WhereConditions = {};
+    const whereConditions: FindOptionsWhere<Record> = {};
 
     if (query.codigo) whereConditions.codigo = ILike(`%${query.codigo}%`);
     if (query.cliente) whereConditions.cliente = Like(`%${query.cliente}%`);
     if (query.equipo) whereConditions.equipo = ILike(`%${query.equipo}%`);
     if (query.ubicacion)
       whereConditions.ubicacion = ILike(`%${query.ubicacion}%`);
+    if (query.anclaje_equipos)
+      whereConditions.anclaje_equipos = ILike(`%${query.anclaje_equipos}%`);
     if (query.estado_actual)
       whereConditions.estado_actual = query.estado_actual;
     if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;

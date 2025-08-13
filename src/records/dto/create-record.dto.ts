@@ -8,7 +8,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsAfterInstallationDate,
   IsReasonableFutureDate,
@@ -46,6 +46,15 @@ export class CreateRecordDto {
     message: 'El nombre del equipo no puede exceder 100 caracteres',
   })
   equipo?: string;
+
+  @ApiPropertyOptional({
+    description: 'Anclaje de equipos asociado a la línea',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100, { message: 'El anclaje no puede exceder 100 caracteres' })
+  anclaje_equipos?: string;
 
   @ApiProperty({
     description: 'Años de vida útil',

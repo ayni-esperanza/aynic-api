@@ -107,6 +107,11 @@ export class RecordsController {
     description: 'Buscar por ubicación (parcial)',
   })
   @ApiQuery({ name: 'seec', required: false, description: 'Filtrar por SEEC' })
+  @ApiQuery({
+    name: 'anclaje_equipos',
+    required: false,
+    description: 'Buscar por anclaje de equipos (parcial)',
+  })
   findAll(@Query() query: GetRecordsQueryDto) {
     return this.recordsService.findAll(query);
   }
@@ -132,6 +137,7 @@ export class RecordsController {
         seec: 50,
         tipo_linea: 100,
         ubicacion: 200,
+        anclaje_equipos: 100,
       },
       rangos_numericos: {
         fv_anios: { min: 1, max: 100 },

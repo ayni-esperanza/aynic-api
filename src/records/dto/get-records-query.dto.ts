@@ -18,6 +18,13 @@ export class GetRecordsQueryDto extends PaginationDto {
   @IsString()
   equipo?: string;
 
+  @ApiPropertyOptional({
+    description: 'Buscar por anclaje de equipos (parcial)',
+  })
+  @IsOptional()
+  @IsString()
+  anclaje_equipos?: string;
+
   @ApiPropertyOptional({ description: 'Filtrar por estado actual' })
   @IsOptional()
   @IsString()

@@ -14,6 +14,9 @@ export class Record {
   @Column({ nullable: true })
   equipo: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  anclaje_equipos?: string | null;
+
   @Column({ nullable: true })
   fv_anios: number;
 
