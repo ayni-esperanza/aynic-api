@@ -12,13 +12,15 @@ import { AuthModule } from './auth/auth.module';
 import { SharedModule } from './shared/shared.module';
 import { ScheduleModule } from './schedules/schedules.module';
 import { AlertsModule } from './alerts/alerts.module';
-import { RecordImagesModule } from './record-images/record-images.module'; // NUEVO
+import { RecordImagesModule } from './record-images/record-images.module';
+import { RecordMovementHistoryModule } from './record-movement-history/record-movement-history.module'; // NUEVO
 
 import { User } from './users/entities/user.entity';
 import { Record } from './records/entities/record.entity';
 import { RecordStatusHistory } from './record-status-history/entities/record-status-history.entity';
 import { Alert } from './alerts/entities/alert.entity';
-import { RecordImage } from './record-images/entities/record-image.entity'; // NUEVO
+import { RecordImage } from './record-images/entities/record-image.entity';
+import { RecordMovementHistory } from './record-movement-history/entities/record-movement-history.entity'; // NUEVO
 
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -89,7 +91,14 @@ import { RolesGuard } from './auth/guards/roles.guard';
           username: config.get('DB_USERNAME'),
           password: config.get('DB_PASSWORD'),
           database: config.get('DB_DATABASE'),
-          entities: [User, Record, RecordStatusHistory, Alert, RecordImage],
+          entities: [
+            User,
+            Record,
+            RecordStatusHistory,
+            Alert,
+            RecordImage,
+            RecordMovementHistory,
+          ],
           synchronize: true,
           autoLoadEntities: true,
           // En TypeORM/pg, pon booleano false para desactivar SSL
@@ -105,6 +114,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     ScheduleModule,
     AlertsModule,
     RecordImagesModule,
+    RecordMovementHistoryModule,
   ],
   providers: [
     // Rate Limiting Guard globalmente

@@ -11,6 +11,10 @@ import { RecordImage } from './entities/record-image.entity';
 import { Record as RecordEntity } from '../records/entities/record.entity';
 import { R2Service } from './services/r2.service';
 import {
+  MovementTrackingService,
+  TrackingContext,
+} from '../record-movement-history/movement-tracking.service';
+import {
   UploadImageDto,
   ImageResponseDto,
   UpdateImageDto,
@@ -26,6 +30,7 @@ export class RecordImagesService {
     @InjectRepository(RecordEntity)
     private readonly recordRepository: Repository<RecordEntity>,
     private readonly r2Service: R2Service,
+    private readonly movementTrackingService: MovementTrackingService,
   ) {}
 
   /**
@@ -36,6 +41,7 @@ export class RecordImagesService {
     file: Express.Multer.File,
     uploadImageDto: UploadImageDto,
     userId?: number,
+    trackingContext?: TrackingContext,
   ): Promise<ImageResponseDto> {
     // Verificar que el record existe
     const record = await this.recordRepository.findOne({
@@ -84,6 +90,24 @@ export class RecordImagesService {
           `(${(uploadResult.originalSize / 1024).toFixed(1)}KB → ${(uploadResult.size / 1024).toFixed(1)}KB, ` +
           `${uploadResult.compressionRatio.toFixed(1)}% reducción)`,
       );
+
+      // Registrar en historial de movimientos
+      if (trackingContext) {
+        const record = await this.recordRepository.findOne({
+          where: { id: recordId },
+        });
+
+        await this.movementTrackingService.trackImageUpload(
+          recordId,
+          record?.codigo || `ID-${recordId}`,
+          {
+            filename: uploadResult.filename,
+            size: uploadResult.size,
+            originalName: file.originalname,
+          },
+          trackingContext,
+        );
+      }
 
       return this.mapToResponseDto(savedImage, uploadResult.publicUrl, {
         originalSize: uploadResult.originalSize,
@@ -204,9 +228,7 @@ export class RecordImagesService {
       // Continuar sin información de compresión
     }
 
-    this.logger.log(
-      `Metadatos de imagen actualizados para record ${recordId}`,
-    );
+    this.logger.log(`Metadatos de imagen actualizados para record ${recordId}`);
 
     return this.mapToResponseDto(updatedImage!, imageUrl, compressionInfo);
   }
@@ -214,7 +236,11 @@ export class RecordImagesService {
   /**
    * Eliminar imagen de un record
    */
-  async deleteRecordImage(recordId: number, userId?: number): Promise<void> {
+  async deleteRecordImage(
+    recordId: number,
+    userId?: number,
+    trackingContext?: TrackingContext,
+  ): Promise<void> {
     const recordImage = await this.recordImageRepository.findOne({
       where: { record_id: recordId, is_active: true },
     });
@@ -222,6 +248,23 @@ export class RecordImagesService {
     if (!recordImage) {
       throw new NotFoundException(
         `No se encontró imagen para el record ${recordId}`,
+      );
+    }
+
+    // Registrar en historial antes de eliminar
+    if (trackingContext) {
+      const record = await this.recordRepository.findOne({
+        where: { id: recordId },
+      });
+
+      await this.movementTrackingService.trackImageDeletion(
+        recordId,
+        record?.codigo || `ID-${recordId}`,
+        {
+          filename: recordImage.filename,
+          size: recordImage.file_size,
+        },
+        trackingContext,
       );
     }
 
@@ -256,7 +299,20 @@ export class RecordImagesService {
     file: Express.Multer.File,
     uploadImageDto: UploadImageDto,
     userId?: number,
+    trackingContext?: TrackingContext,
   ): Promise<ImageResponseDto> {
+    // Obtener información de la imagen anterior
+    const existingImage = await this.recordImageRepository.findOne({
+      where: { record_id: recordId, is_active: true },
+    });
+
+    const oldImageInfo = existingImage
+      ? {
+          filename: existingImage.filename,
+          size: existingImage.file_size,
+        }
+      : null;
+
     // Eliminar imagen existente si existe
     try {
       await this.deleteRecordImage(recordId, userId);
@@ -268,7 +324,33 @@ export class RecordImagesService {
     }
 
     // Subir nueva imagen con compresión
-    return this.uploadImage(recordId, file, uploadImageDto, userId);
+    const result = await this.uploadImage(
+      recordId,
+      file,
+      uploadImageDto,
+      userId,
+    );
+
+    // NUEVO: Registrar reemplazo en historial
+    if (trackingContext && oldImageInfo) {
+      const record = await this.recordRepository.findOne({
+        where: { id: recordId },
+      });
+
+      await this.movementTrackingService.trackImageReplace(
+        recordId,
+        record?.codigo || `ID-${recordId}`,
+        oldImageInfo,
+        {
+          filename: result.filename,
+          size: result.file_size,
+          originalName: file.originalname,
+        },
+        trackingContext,
+      );
+    }
+
+    return result;
   }
 
   /**
@@ -309,9 +391,7 @@ export class RecordImagesService {
             quality: metadata.compression.quality,
           };
         }
-      } catch (error) {
-          
-      }
+      } catch (error) {}
 
       result.push(this.mapToResponseDto(image, imageUrl, compressionInfo));
     }
@@ -537,9 +617,7 @@ export class RecordImagesService {
     const beforeSize = recordImage.file_size;
     const beforeUrl = await this.getImageUrl(recordImage);
 
-    this.logger.log(
-      `Optimización de imagen existente para record ${recordId}`,
-    );
+    this.logger.log(`Optimización de imagen existente para record ${recordId}`);
 
     return {
       before: { size: beforeSize, url: beforeUrl },

@@ -29,6 +29,9 @@ import {
   ImageResponseDto,
   UpdateImageDto,
 } from './dto/image.dto';
+import { Req } from '@nestjs/common';
+import { TrackingInterceptor } from '../record-movement-history/tracking.interceptor';
+import { TrackingContext } from '../record-movement-history/movement-tracking.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
@@ -41,9 +44,20 @@ import { multerConfig } from './config/multer.config';
 @ApiTags('record-images')
 @Controller('records/:recordId/image')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(TrackingInterceptor)
 @ApiBearerAuth()
 export class RecordImagesController {
   constructor(private readonly recordImagesService: RecordImagesService) {}
+
+  // Método helper para extraer contexto de tracking
+  private getTrackingContext(request: any, user: any): TrackingContext {
+    return {
+      userId: user?.userId,
+      username: user?.username,
+      ipAddress: request?.trackingContext?.ipAddress,
+      userAgent: request?.trackingContext?.userAgent,
+    };
+  }
 
   @Post('upload')
   @Roles('ADMINISTRADOR', 'USUARIO')
@@ -82,12 +96,15 @@ export class RecordImagesController {
     @UploadedFile() file: Express.Multer.File,
     @Body() uploadImageDto: UploadImageDto,
     @CurrentUser() user: AuthenticatedUser,
+    @Req() request: any,
   ): Promise<ImageResponseDto> {
+    const trackingContext = this.getTrackingContext(request, user);
     return this.recordImagesService.uploadImage(
       recordId,
       file,
       uploadImageDto,
       user.userId,
+      trackingContext,
     );
   }
 
@@ -127,12 +144,15 @@ export class RecordImagesController {
     @UploadedFile() file: Express.Multer.File,
     @Body() uploadImageDto: UploadImageDto,
     @CurrentUser() user: AuthenticatedUser,
+    @Req() request: any,
   ): Promise<ImageResponseDto> {
+    const trackingContext = this.getTrackingContext(request, user);
     return this.recordImagesService.replaceRecordImage(
       recordId,
       file,
       uploadImageDto,
       user.userId,
+      trackingContext,
     );
   }
 
@@ -184,8 +204,14 @@ export class RecordImagesController {
   async deleteRecordImage(
     @Param('recordId', ParseIntPipe) recordId: number,
     @CurrentUser() user: AuthenticatedUser,
+    @Req() request: any, // NUEVO
   ): Promise<void> {
-    await this.recordImagesService.deleteRecordImage(recordId, user.userId);
+    const trackingContext = this.getTrackingContext(request, user);
+    await this.recordImagesService.deleteRecordImage(
+      recordId,
+      user.userId,
+      trackingContext,
+    );
   }
 
   @Get('exists')

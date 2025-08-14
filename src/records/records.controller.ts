@@ -10,7 +10,7 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +19,9 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { UseInterceptors, Req } from '@nestjs/common';
+import { TrackingInterceptor } from '../record-movement-history/tracking.interceptor';
+import { TrackingContext } from '../record-movement-history/movement-tracking.service';
 import { RecordsService } from './records.service';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
@@ -27,10 +30,15 @@ import { StatusUpdateService } from '../schedules/status-update.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
+import { 
+  CurrentUser,
+  AuthenticatedUser
+} from '../auth/decorators/auth.decorators';
 
 @ApiTags('records')
 @Controller('records')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(TrackingInterceptor)
 @ApiBearerAuth()
 export class RecordsController {
   constructor(
@@ -38,13 +46,27 @@ export class RecordsController {
     private readonly statusUpdateService: StatusUpdateService,
   ) {}
 
+  private getTrackingContext(request: any, user: any): TrackingContext {
+    return {
+      userId: user?.userId,
+      username: user?.username,
+      ipAddress: request?.trackingContext?.ipAddress,
+      userAgent: request?.trackingContext?.userAgent,
+    };
+  }
+
   @Post()
   @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Crear un nuevo registro de línea de vida' })
   @ApiResponse({ status: 201, description: 'Registro creado exitosamente' })
   @ApiResponse({ status: 409, description: 'El código ya existe' })
-  async create(@Body() createRecordDto: CreateRecordDto) {
-    return this.recordsService.create(createRecordDto);
+  async create(
+    @Body() createRecordDto: CreateRecordDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: any,
+  ) {
+    const trackingContext = this.getTrackingContext(request, user);
+    return this.recordsService.create(createRecordDto, trackingContext);
   }
 
   @Get()
@@ -238,8 +260,11 @@ export class RecordsController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRecordDto: UpdateRecordDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: any,
   ) {
-    return this.recordsService.update(id, updateRecordDto);
+    const trackingContext = this.getTrackingContext(request, user);
+    return this.recordsService.update(id, updateRecordDto, trackingContext);
   }
 
   @Delete(':id')
@@ -252,7 +277,12 @@ export class RecordsController {
     status: 403,
     description: 'Acceso denegado - Se requiere rol de administrador',
   })
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.recordsService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: any,
+  ) {
+    const trackingContext = this.getTrackingContext(request, user);
+    await this.recordsService.remove(id, trackingContext);
   }
 }

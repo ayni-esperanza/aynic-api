@@ -13,6 +13,10 @@ import {
   FindManyOptions,
   FindOptionsWhere,
 } from 'typeorm';
+import {
+  MovementTrackingService,
+  TrackingContext,
+} from '../record-movement-history/movement-tracking.service';
 import { Record } from './entities/record.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
@@ -27,9 +31,13 @@ export class RecordsService {
   constructor(
     @InjectRepository(Record)
     private readonly recordRepository: Repository<Record>,
+    private readonly movementTrackingService: MovementTrackingService,
   ) {}
 
-  async create(createRecordDto: CreateRecordDto): Promise<Record> {
+  async create(
+    createRecordDto: CreateRecordDto,
+    trackingContext?: TrackingContext,
+  ): Promise<Record> {
     const existingRecord = await this.recordRepository.findOne({
       where: { codigo: createRecordDto.codigo },
     });
@@ -76,7 +84,16 @@ export class RecordsService {
       estado_actual: createRecordDto.estado_actual || 'ACTIVO',
     });
 
-    return await this.recordRepository.save(record);
+    const savedRecord = await this.recordRepository.save(record);
+
+    if (trackingContext) {
+      await this.movementTrackingService.trackRecordCreation(
+        savedRecord,
+        trackingContext,
+      );
+    }
+
+    return savedRecord;
   }
 
   async findAll(query: GetRecordsQueryDto): Promise<PaginatedResponse<Record>> {
@@ -165,7 +182,11 @@ export class RecordsService {
     return record;
   }
 
-  async update(id: number, updateRecordDto: UpdateRecordDto): Promise<Record> {
+  async update(
+    id: number,
+    updateRecordDto: UpdateRecordDto,
+    trackingContext?: TrackingContext,
+  ): Promise<Record> {
     const record = await this.findOne(id);
 
     if (updateRecordDto.codigo && updateRecordDto.codigo !== record.codigo) {
@@ -214,16 +235,72 @@ export class RecordsService {
       }
     }
 
+    const previousValues = {
+      codigo: record.codigo,
+      cliente: record.cliente,
+      equipo: record.equipo,
+      anclaje_equipos: record.anclaje_equipos,
+      fv_anios: record.fv_anios,
+      fv_meses: record.fv_meses,
+      fecha_instalacion: record.fecha_instalacion,
+      longitud: record.longitud,
+      observaciones: record.observaciones,
+      seec: record.seec,
+      tipo_linea: record.tipo_linea,
+      ubicacion: record.ubicacion,
+      fecha_caducidad: record.fecha_caducidad,
+      estado_actual: record.estado_actual,
+    };
+
     await this.recordRepository.update(id, {
       ...updateRecordDto,
       fecha_caducidad: nuevaFechaCaducidad,
     });
 
-    return await this.findOne(id);
+    const updatedRecord = await this.findOne(id);
+
+    // Registrar en historial de movimientos
+    if (trackingContext) {
+      const newValues = {
+        codigo: updatedRecord.codigo,
+        cliente: updatedRecord.cliente,
+        equipo: updatedRecord.equipo,
+        anclaje_equipos: updatedRecord.anclaje_equipos,
+        fv_anios: updatedRecord.fv_anios,
+        fv_meses: updatedRecord.fv_meses,
+        fecha_instalacion: updatedRecord.fecha_instalacion,
+        longitud: updatedRecord.longitud,
+        observaciones: updatedRecord.observaciones,
+        seec: updatedRecord.seec,
+        tipo_linea: updatedRecord.tipo_linea,
+        ubicacion: updatedRecord.ubicacion,
+        fecha_caducidad: updatedRecord.fecha_caducidad,
+        estado_actual: updatedRecord.estado_actual,
+      };
+
+      await this.movementTrackingService.trackRecordUpdate(
+        id,
+        record.codigo,
+        previousValues,
+        newValues,
+        trackingContext,
+      );
+    }
+
+    return updatedRecord;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, trackingContext?: TrackingContext): Promise<void> {
     const record = await this.findOne(id);
+
+    // Registrar en historial antes de eliminar
+    if (trackingContext) {
+      await this.movementTrackingService.trackRecordDeletion(
+        record,
+        trackingContext,
+      );
+    }
+
     await this.recordRepository.remove(record);
   }
 

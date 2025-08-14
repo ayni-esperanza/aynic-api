@@ -9,9 +9,13 @@ import {
 } from './record-images.controller';
 import { R2Service } from './services/r2.service';
 import { ImageCompressionService } from './services/image-compression.service';
+import { RecordMovementHistoryModule } from '../record-movement-history/record-movement-history.module'; // NUEVO
 
 @Module({
-  imports: [TypeOrmModule.forFeature([RecordImage, RecordEntity])],
+  imports: [
+    TypeOrmModule.forFeature([RecordImage, RecordEntity]),
+    RecordMovementHistoryModule,
+  ],
   controllers: [RecordImagesController, AdminImagesController],
   providers: [RecordImagesService, R2Service, ImageCompressionService],
   exports: [RecordImagesService, R2Service, ImageCompressionService],
