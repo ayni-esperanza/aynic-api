@@ -68,6 +68,11 @@ export class RecordMovementHistoryController {
     description: 'Filtrar por ID de usuario',
   })
   @ApiQuery({
+    name: 'username',
+    required: false,
+    description: 'Filtrar por nombre de usuario',
+  })
+  @ApiQuery({
     name: 'record_code',
     required: false,
     description: 'Filtrar por código de registro',
@@ -155,6 +160,17 @@ export class RecordMovementHistoryController {
       value,
       label,
     }));
+  }
+
+  @Get('usernames')
+  @Roles('ADMINISTRADOR', 'USUARIO')
+  @ApiOperation({ summary: 'Obtener lista de usernames únicos para filtros' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usernames obtenida exitosamente',
+  })
+  getUsernames() {
+    return this.movementHistoryService.getUniqueUsernames();
   }
 
   @Get('recent')

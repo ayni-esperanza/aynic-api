@@ -95,6 +95,10 @@ export class RecordMovementHistoryService {
       whereConditions.user_id = filters.user_id;
     }
 
+    if (filters.username) {
+      whereConditions.username = filters.username;
+    }
+
     if (filters.record_code) {
       whereConditions.record_code = ILike(`%${filters.record_code}%`);
     }
@@ -231,6 +235,24 @@ export class RecordMovementHistoryService {
       byAction,
       byUser,
     };
+  }
+
+  /**
+   * Obtener lista única de usernames para filtros
+   */
+  async getUniqueUsernames(): Promise<Array<{ value: string; label: string }>> {
+    const usernamesQuery = await this.movementHistoryRepository
+      .createQueryBuilder('movement')
+      .select('DISTINCT movement.username', 'username')
+      .where('movement.username IS NOT NULL')
+      .andWhere('movement.username != :empty', { empty: '' })
+      .orderBy('movement.username', 'ASC')
+      .getRawMany();
+
+    return usernamesQuery.map((item: any) => ({
+      value: item.username,
+      label: item.username,
+    }));
   }
 
   /**

@@ -93,6 +93,11 @@ export class MovementHistoryFiltersDto extends PaginationDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  username?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
   record_code?: string;
 
   @ApiProperty({ required: false })
