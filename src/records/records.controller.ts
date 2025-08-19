@@ -10,13 +10,14 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiQuery,
+  ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { UseInterceptors, Req } from '@nestjs/common';
@@ -30,9 +31,9 @@ import { StatusUpdateService } from '../schedules/status-update.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
-import { 
+import {
   CurrentUser,
-  AuthenticatedUser
+  AuthenticatedUser,
 } from '../auth/decorators/auth.decorators';
 
 @ApiTags('records')
@@ -134,6 +135,11 @@ export class RecordsController {
     required: false,
     description: 'Buscar por anclaje de equipos (parcial)',
   })
+  @ApiQuery({
+    name: 'codigo_placa',
+    required: false,
+    description: 'Buscar por código de placa (parcial)',
+  })
   findAll(@Query() query: GetRecordsQueryDto) {
     return this.recordsService.findAll(query);
   }
@@ -160,6 +166,7 @@ export class RecordsController {
         tipo_linea: 100,
         ubicacion: 200,
         anclaje_equipos: 100,
+        codigo_placa: 50,
       },
       rangos_numericos: {
         fv_anios: { min: 1, max: 100 },
@@ -170,6 +177,10 @@ export class RecordsController {
         fecha_caducidad_debe_ser_posterior_a_instalacion: true,
         maximo_anos_futuro: 50,
         maximo_anos_pasado: 100,
+      },
+      campos_unicos: {
+        codigo: 'El código debe ser único en el sistema',
+        codigo_placa: 'El código de placa debe ser único en el sistema',
       },
     };
   }
@@ -238,6 +249,20 @@ export class RecordsController {
   @ApiOperation({ summary: 'Buscar registro por código' })
   findByCode(@Param('codigo') codigo: string) {
     return this.recordsService.findByCode(codigo);
+  }
+
+  @Get('by-plate-code/:codigoPlaca')
+  @Roles('ADMINISTRADOR', 'USUARIO')
+  @ApiOperation({ summary: 'Buscar registro por código de placa' })
+  @ApiParam({
+    name: 'codigoPlaca',
+    description: 'Código de placa del registro',
+    example: 'PLC-001-A',
+  })
+  @ApiResponse({ status: 200, description: 'Registro encontrado' })
+  @ApiResponse({ status: 404, description: 'Registro no encontrado' })
+  findByPlateCode(@Param('codigoPlaca') codigoPlaca: string) {
+    return this.recordsService.findByPlateCode(codigoPlaca);
   }
 
   @Get(':id')

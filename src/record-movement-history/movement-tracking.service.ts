@@ -232,6 +232,7 @@ export class MovementTrackingService {
       cliente: record.cliente,
       equipo: record.equipo,
       anclaje_equipos: record.anclaje_equipos,
+      codigo_placa: record.codigo_placa,
       fv_anios: record.fv_anios,
       fv_meses: record.fv_meses,
       fecha_instalacion: record.fecha_instalacion,

@@ -17,6 +17,15 @@ export class Record {
   @Column({ type: 'varchar', length: 100, nullable: true })
   anclaje_equipos?: string | null;
 
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+    unique: true,
+    comment: 'Código de identificación físico de la placa',
+  })
+  codigo_placa?: string | null;
+
   @Column({ nullable: true })
   fv_anios: number;
 

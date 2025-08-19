@@ -25,6 +25,14 @@ export class GetRecordsQueryDto extends PaginationDto {
   @IsString()
   anclaje_equipos?: string;
 
+  @ApiPropertyOptional({
+    description: 'Buscar por código de placa (parcial)',
+    example: 'PLC-001',
+  })
+  @IsOptional()
+  @IsString()
+  codigo_placa?: string;
+
   @ApiPropertyOptional({ description: 'Filtrar por estado actual' })
   @IsOptional()
   @IsString()

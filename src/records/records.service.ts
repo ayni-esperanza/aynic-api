@@ -47,6 +47,18 @@ export class RecordsService {
       );
     }
 
+    // Verificar unicidad del código de placa
+    if (createRecordDto.codigo_placa) {
+      const existingPlateCode = await this.recordRepository.findOne({
+        where: { codigo_placa: createRecordDto.codigo_placa },
+      });
+      if (existingPlateCode) {
+        throw new ConflictException(
+          `Ya existe un registro con el código de placa: ${createRecordDto.codigo_placa}`,
+        );
+      }
+    }
+
     // Validar fechas si ambas existen
     if (createRecordDto.fecha_instalacion && createRecordDto.fecha_caducidad) {
       const instalacion = new Date(String(createRecordDto.fecha_instalacion));
@@ -111,6 +123,11 @@ export class RecordsService {
       whereConditions.ubicacion = ILike(`%${query.ubicacion}%`);
     if (query.anclaje_equipos)
       whereConditions.anclaje_equipos = ILike(`%${query.anclaje_equipos}%`);
+
+    // Código de placa
+    if (query.codigo_placa)
+      whereConditions.codigo_placa = ILike(`%${query.codigo_placa}%`);
+
     if (query.estado_actual)
       whereConditions.estado_actual = query.estado_actual;
     if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
@@ -182,6 +199,19 @@ export class RecordsService {
     return record;
   }
 
+  // Buscar por código de placa
+  async findByPlateCode(codigoPlaca: string): Promise<Record> {
+    const record = await this.recordRepository.findOne({
+      where: { codigo_placa: codigoPlaca },
+    });
+    if (!record) {
+      throw new NotFoundException(
+        `Registro con código de placa ${codigoPlaca} no encontrado`,
+      );
+    }
+    return record;
+  }
+
   async update(
     id: number,
     updateRecordDto: UpdateRecordDto,
@@ -199,6 +229,22 @@ export class RecordsService {
         );
       }
     }
+
+    // Verificar unicidad del código de placa al actualizar
+    if (
+      updateRecordDto.codigo_placa &&
+      updateRecordDto.codigo_placa !== record.codigo_placa
+    ) {
+      const existingPlateCode = await this.recordRepository.findOne({
+        where: { codigo_placa: updateRecordDto.codigo_placa },
+      });
+      if (existingPlateCode) {
+        throw new ConflictException(
+          `Ya existe un registro con el código de placa: ${updateRecordDto.codigo_placa}`,
+        );
+      }
+    }
+
     const fechaInstalacion =
       updateRecordDto.fecha_instalacion || record.fecha_instalacion;
     const fechaCaducidad =
@@ -240,6 +286,7 @@ export class RecordsService {
       cliente: record.cliente,
       equipo: record.equipo,
       anclaje_equipos: record.anclaje_equipos,
+      codigo_placa: record.codigo_placa,
       fv_anios: record.fv_anios,
       fv_meses: record.fv_meses,
       fecha_instalacion: record.fecha_instalacion,
@@ -266,6 +313,7 @@ export class RecordsService {
         cliente: updatedRecord.cliente,
         equipo: updatedRecord.equipo,
         anclaje_equipos: updatedRecord.anclaje_equipos,
+        codigo_placa: updatedRecord.codigo_placa,
         fv_anios: updatedRecord.fv_anios,
         fv_meses: updatedRecord.fv_meses,
         fecha_instalacion: updatedRecord.fecha_instalacion,
