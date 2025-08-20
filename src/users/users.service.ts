@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateOwnProfileDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -115,6 +116,105 @@ export class UsersService {
       }
     }
 
+    await this.userRepository.update(id, updateUserDto);
+    const updatedUser = await this.userRepository.findOne({ where: { id } });
+
+    return {
+      id: updatedUser!.id,
+      usuario: updatedUser!.usuario,
+      apellidos: updatedUser!.apellidos,
+      cargo: updatedUser!.cargo,
+      celular: updatedUser!.celular,
+      email: updatedUser!.email,
+      empresa: updatedUser!.empresa,
+      nombre: updatedUser!.nombre,
+      rol: updatedUser!.rol,
+    };
+  }
+
+  /**
+   * Actualizar perfil propio (sin empresa ni rol)
+   */
+  async updateOwnProfile(
+    id: number,
+    updateOwnProfileDto: UpdateOwnProfileDto,
+  ): Promise<Omit<User, 'contrasenia'>> {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    // Si se está actualizando la contraseña, hashearla
+    if (updateOwnProfileDto.contrasenia) {
+      updateOwnProfileDto.contrasenia = await this.hashPassword(
+        updateOwnProfileDto.contrasenia,
+      );
+    }
+
+    // Verificar si se está cambiando el username y si ya existe
+    if (
+      updateOwnProfileDto.usuario &&
+      updateOwnProfileDto.usuario !== user.usuario
+    ) {
+      const existingUser = await this.userRepository.findOne({
+        where: { usuario: updateOwnProfileDto.usuario },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('El nombre de usuario ya existe');
+      }
+    }
+
+    // Actualizar solo campos permitidos (sin empresa ni rol)
+    await this.userRepository.update(id, updateOwnProfileDto);
+    const updatedUser = await this.userRepository.findOne({ where: { id } });
+
+    return {
+      id: updatedUser!.id,
+      usuario: updatedUser!.usuario,
+      apellidos: updatedUser!.apellidos,
+      cargo: updatedUser!.cargo,
+      celular: updatedUser!.celular,
+      email: updatedUser!.email,
+      empresa: updatedUser!.empresa,
+      nombre: updatedUser!.nombre,
+      rol: updatedUser!.rol,
+    };
+  }
+
+  /**
+   * Actualizar usuario (solo administradores - puede cambiar empresa y rol)
+   */
+  async updateByAdmin(
+    id: number,
+    updateUserDto: UpdateUserDto,
+  ): Promise<Omit<User, 'contrasenia'>> {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    // Si se está actualizando la contraseña, hashearla
+    if (updateUserDto.contrasenia) {
+      updateUserDto.contrasenia = await this.hashPassword(
+        updateUserDto.contrasenia,
+      );
+    }
+
+    // Verificar si se está cambiando el username y si ya existe
+    if (updateUserDto.usuario && updateUserDto.usuario !== user.usuario) {
+      const existingUser = await this.userRepository.findOne({
+        where: { usuario: updateUserDto.usuario },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('El nombre de usuario ya existe');
+      }
+    }
+
+    // Los administradores pueden cambiar todo, incluyendo empresa y rol
     await this.userRepository.update(id, updateUserDto);
     const updatedUser = await this.userRepository.findOne({ where: { id } });
 

@@ -20,6 +20,7 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateOwnProfileDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
@@ -73,19 +74,23 @@ export class UsersController {
   }
 
   @Patch('profile')
-  @ApiOperation({ summary: 'Actualizar perfil propio' })
+  @ApiOperation({ summary: 'Actualizar perfil propio (sin empresa ni rol)' })
   @ApiResponse({ status: 200, description: 'Perfil actualizado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
   updateProfile(
     @CurrentUser() user: AuthenticatedUser,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body() updateOwnProfileDto: UpdateOwnProfileDto,
   ) {
-    // Los usuarios pueden actualizar su propio perfil
-    return this.usersService.update(user.userId, updateUserDto);
+    // Los usuarios solo pueden actualizar su propio perfil (sin empresa ni rol)
+    return this.usersService.updateOwnProfile(user.userId, updateOwnProfileDto);
   }
 
   @Patch(':id')
-  @Roles('ADMINISTRADOR') // Solo administradores pueden actualizar otros usuarios
-  @ApiOperation({ summary: 'Actualizar un usuario (Solo Administradores)' })
+  @Roles('ADMINISTRADOR') // Solo administradores pueden actualizar usuarios
+  @ApiOperation({
+    summary:
+      'Actualizar cualquier usuario incluyendo empresa y rol (Solo Administradores)',
+  })
   @ApiResponse({ status: 200, description: 'Usuario actualizado exitosamente' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   @ApiResponse({
@@ -96,7 +101,8 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return this.usersService.update(id, updateUserDto);
+    // Solo administradores pueden cambiar empresa, rol y datos de otros usuarios
+    return this.usersService.updateByAdmin(id, updateUserDto);
   }
 
   @Delete(':id')
