@@ -29,6 +29,7 @@ import { UpdateRecordDto } from './dto/update-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { StatusUpdateService } from '../schedules/status-update.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmpresaFilterGuard } from '../auth/guards/empresa-filter.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
 import {
@@ -72,6 +73,7 @@ export class RecordsController {
 
   @Get()
   @Roles('ADMINISTRADOR', 'USUARIO')
+  @UseGuards(EmpresaFilterGuard)
   @ApiOperation({
     summary: 'Obtener todos los registros con filtros y paginación',
   })
@@ -140,7 +142,13 @@ export class RecordsController {
     required: false,
     description: 'Buscar por código de placa (parcial)',
   })
-  findAll(@Query() query: GetRecordsQueryDto) {
+  findAll(@Query() query: GetRecordsQueryDto, @Req() request: any) {
+    const userEmpresa = request.userEmpresa;
+    // Si hay información de empresa, usar el método con filtro
+    if (userEmpresa) {
+      return this.recordsService.findAllWithEmpresaFilter(query, userEmpresa);
+    }
+    // Fallback al método original sin filtro de empresa
     return this.recordsService.findAll(query);
   }
 

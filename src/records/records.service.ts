@@ -181,6 +181,103 @@ export class RecordsService {
     return PaginationHelper.createResponse(records, total, page, limit);
   }
 
+  async findAllWithEmpresaFilter(
+    query: GetRecordsQueryDto,
+    userEmpresa: { empresa: string; isAyniUser: boolean },
+  ): Promise<PaginatedResponse<Record>> {
+    const page = query.getPage();
+    const limit = query.getLimit();
+    const sortBy = query.getSortBy();
+    const sortOrder = query.getSortOrder();
+
+    const whereConditions: FindOptionsWhere<Record> = {};
+
+    // FILTRO POR EMPRESA: Si no es usuario de Ayni, solo ver registros de su empresa
+    if (!userEmpresa.isAyniUser) {
+      whereConditions.cliente = userEmpresa.empresa;
+    }
+
+    // Resto de filtros existentes
+    if (query.codigo) whereConditions.codigo = ILike(`%${query.codigo}%`);
+    if (query.cliente) {
+      // Si no es usuario Ayni y ya hay filtro de cliente, combinarlo
+      if (!userEmpresa.isAyniUser) {
+        // Solo buscar dentro de su empresa
+        if (
+          query.cliente
+            .toLowerCase()
+            .includes(userEmpresa.empresa.toLowerCase())
+        ) {
+          whereConditions.cliente = ILike(`%${query.cliente}%`);
+        } else {
+          // Si busca otro cliente, no mostrar nada
+          whereConditions.cliente = 'NO_MATCH_EMPRESA_RESTRICTION';
+        }
+      } else {
+        // Usuario Ayni puede buscar cualquier cliente
+        whereConditions.cliente = Like(`%${query.cliente}%`);
+      }
+    }
+
+    if (query.equipo) whereConditions.equipo = ILike(`%${query.equipo}%`);
+    if (query.ubicacion)
+      whereConditions.ubicacion = ILike(`%${query.ubicacion}%`);
+    if (query.anclaje_equipos)
+      whereConditions.anclaje_equipos = ILike(`%${query.anclaje_equipos}%`);
+    if (query.codigo_placa)
+      whereConditions.codigo_placa = ILike(`%${query.codigo_placa}%`);
+    if (query.estado_actual)
+      whereConditions.estado_actual = query.estado_actual;
+    if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
+    if (query.seec) whereConditions.seec = query.seec;
+
+    // Filtros de fechas
+    if (query.fecha_caducidad_desde && query.fecha_caducidad_hasta) {
+      whereConditions.fecha_caducidad = Between(
+        new Date(String(query.fecha_caducidad_desde)),
+        new Date(String(query.fecha_caducidad_hasta)),
+      );
+    } else if (query.fecha_caducidad_desde) {
+      whereConditions.fecha_caducidad = Between(
+        new Date(String(query.fecha_caducidad_desde)),
+        new Date('2099-12-31'),
+      );
+    } else if (query.fecha_caducidad_hasta) {
+      whereConditions.fecha_caducidad = Between(
+        new Date('1900-01-01'),
+        new Date(String(query.fecha_caducidad_hasta)),
+      );
+    }
+
+    if (query.fecha_instalacion_desde && query.fecha_instalacion_hasta) {
+      whereConditions.fecha_instalacion = Between(
+        new Date(String(query.fecha_instalacion_desde)),
+        new Date(String(query.fecha_instalacion_hasta)),
+      );
+    } else if (query.fecha_instalacion_desde) {
+      whereConditions.fecha_instalacion = Between(
+        new Date(String(query.fecha_instalacion_desde)),
+        new Date('2099-12-31'),
+      );
+    } else if (query.fecha_instalacion_hasta) {
+      whereConditions.fecha_instalacion = Between(
+        new Date('1900-01-01'),
+        new Date(String(query.fecha_instalacion_hasta)),
+      );
+    }
+
+    const options: FindManyOptions<Record> = {
+      where: whereConditions,
+      order: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+    };
+
+    const [records, total] = await this.recordRepository.findAndCount(options);
+
+    return PaginationHelper.createResponse(records, total, page, limit);
+  }
+
   async findOne(id: number): Promise<Record> {
     const record = await this.recordRepository.findOne({ where: { id } });
     if (!record) {
