@@ -242,6 +242,36 @@ export class RecordsController {
     };
   }
 
+  @Get('search/lineas-vida')
+  @Roles('ADMINISTRADOR', 'USUARIO')
+  @ApiOperation({
+    summary: 'Buscar líneas de vida para formularios (sin paginación)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Término de búsqueda en código, cliente o ubicación',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Líneas de vida encontradas',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'number' },
+          codigo: { type: 'string' },
+          cliente: { type: 'string' },
+          ubicacion: { type: 'string' },
+        },
+      },
+    },
+  })
+  async searchLineasVida(@Query('search') search?: string) {
+    return this.recordsService.searchLineasVida(search);
+  }
+
   @Get('statistics')
   @Roles('ADMINISTRADOR', 'USUARIO')
   @ApiOperation({ summary: 'Obtener estadísticas generales de registros' })

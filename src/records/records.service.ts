@@ -489,7 +489,6 @@ export class RecordsService {
     totalIncidents: number;
     lastIncidentDate: Date | null;
   }> {
-
     const query = `
     SELECT 
       COUNT(*) as total_incidents,
@@ -532,6 +531,44 @@ export class RecordsService {
       ...records,
       data: recordsWithIncidents,
     };
+  }
+
+  /**
+   * Buscar líneas de vida por término de búsqueda (sin paginación)
+   * Para uso en selects/autocomplete
+   */
+  async searchLineasVida(searchTerm?: string): Promise<
+    Array<{
+      id: number;
+      codigo: string;
+      cliente: string;
+      ubicacion: string;
+    }>
+  > {
+    let whereConditions: FindOptionsWhere<Record> | FindOptionsWhere<Record>[] = {};
+
+    if (searchTerm) {
+      // Buscar en código, cliente o ubicación
+      whereConditions = [
+        { codigo: ILike(`%${searchTerm}%`) },
+        { cliente: ILike(`%${searchTerm}%`) },
+        { ubicacion: ILike(`%${searchTerm}%`) },
+      ];
+    }
+
+    const records = await this.recordRepository.find({
+      where: whereConditions,
+      order: { codigo: 'ASC' },
+      take: 500, // Límite razonable para evitar sobrecarga
+      select: ['id', 'codigo', 'cliente', 'ubicacion'], // Solo campos necesarios
+    });
+
+    return records.map((record) => ({
+      id: record.id,
+      codigo: record.codigo,
+      cliente: record.cliente || '',
+      ubicacion: record.ubicacion || '',
+    }));
   }
 
   async getRecordsByStatus(estado: string): Promise<Record[]> {
