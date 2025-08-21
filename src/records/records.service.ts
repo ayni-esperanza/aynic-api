@@ -242,7 +242,7 @@ export class RecordsService {
     if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
     if (query.seec) whereConditions.seec = query.seec;
 
-    // Filtros de fechas 
+    // Filtros de fechas
     if (query.fecha_caducidad_desde && query.fecha_caducidad_hasta) {
       whereConditions.fecha_caducidad = Between(
         new Date(String(query.fecha_caducidad_desde)),
@@ -479,6 +479,59 @@ export class RecordsService {
     }
 
     await this.recordRepository.remove(record);
+  }
+
+  /**
+   * Verificar si una línea de vida tiene incidentes registrados
+   */
+  async hasIncidents(recordId: number): Promise<{
+    hasIncidents: boolean;
+    totalIncidents: number;
+    lastIncidentDate: Date | null;
+  }> {
+
+    const query = `
+    SELECT 
+      COUNT(*) as total_incidents,
+      MAX(fecha_accidente) as last_incident_date
+    FROM accidentes 
+    WHERE linea_vida_id = $1
+  `;
+
+    const result = await this.recordRepository.query(query, [recordId]);
+    const totalIncidents = parseInt(result[0]?.total_incidents || '0', 10);
+    const lastIncidentDate = result[0]?.last_incident_date || null;
+
+    return {
+      hasIncidents: totalIncidents > 0,
+      totalIncidents,
+      lastIncidentDate: lastIncidentDate ? new Date(lastIncidentDate) : null,
+    };
+  }
+
+  /**
+   * Obtener registros con información de incidentes
+   */
+  async findAllWithIncidents(
+    query: GetRecordsQueryDto,
+  ): Promise<PaginatedResponse<Record & { incidentInfo?: any }>> {
+    const records = await this.findAll(query);
+
+    // Agregar información de incidentes a cada registro
+    const recordsWithIncidents = await Promise.all(
+      records.data.map(async (record) => {
+        const incidentInfo = await this.hasIncidents(record.id);
+        return {
+          ...record,
+          incidentInfo,
+        };
+      }),
+    );
+
+    return {
+      ...records,
+      data: recordsWithIncidents,
+    };
   }
 
   async getRecordsByStatus(estado: string): Promise<Record[]> {

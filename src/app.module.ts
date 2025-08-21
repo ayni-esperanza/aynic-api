@@ -13,14 +13,17 @@ import { SharedModule } from './shared/shared.module';
 import { ScheduleModule } from './schedules/schedules.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { RecordImagesModule } from './record-images/record-images.module';
-import { RecordMovementHistoryModule } from './record-movement-history/record-movement-history.module'; // NUEVO
+import { RecordMovementHistoryModule } from './record-movement-history/record-movement-history.module';
 
 import { User } from './users/entities/user.entity';
 import { Record } from './records/entities/record.entity';
 import { RecordStatusHistory } from './record-status-history/entities/record-status-history.entity';
 import { Alert } from './alerts/entities/alert.entity';
 import { RecordImage } from './record-images/entities/record-image.entity';
-import { RecordMovementHistory } from './record-movement-history/entities/record-movement-history.entity'; // NUEVO
+import { RecordMovementHistory } from './record-movement-history/entities/record-movement-history.entity';
+
+import { AccidentsModule } from './accidents/accidents.module';
+import { Accident } from './accidents/entities/accident.entity';
 
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -98,6 +101,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
             Alert,
             RecordImage,
             RecordMovementHistory,
+            Accident,
           ],
           synchronize: true,
           autoLoadEntities: true,
@@ -115,6 +119,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     AlertsModule,
     RecordImagesModule,
     RecordMovementHistoryModule,
+    AccidentsModule,
   ],
   providers: [
     // Rate Limiting Guard globalmente
