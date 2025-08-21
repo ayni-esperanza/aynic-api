@@ -10,6 +10,7 @@ import {
   Like,
   ILike,
   Between,
+  In,
   FindManyOptions,
   FindOptionsWhere,
 } from 'typeorm';
@@ -17,6 +18,7 @@ import {
   MovementTrackingService,
   TrackingContext,
 } from '../record-movement-history/movement-tracking.service';
+import { EmpresaPermissionsService } from './services/empresa-permissions.service';
 import { Record } from './entities/record.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
@@ -32,6 +34,7 @@ export class RecordsService {
     @InjectRepository(Record)
     private readonly recordRepository: Repository<Record>,
     private readonly movementTrackingService: MovementTrackingService,
+    private readonly empresaPermissionsService: EmpresaPermissionsService,
   ) {}
 
   async create(
@@ -192,29 +195,37 @@ export class RecordsService {
 
     const whereConditions: FindOptionsWhere<Record> = {};
 
-    // FILTRO POR EMPRESA: Si no es usuario de Ayni, solo ver registros de su empresa
-    if (!userEmpresa.isAyniUser) {
-      whereConditions.cliente = userEmpresa.empresa;
+    // USAR EL SERVICIO DE PERMISOS
+    const filterConditions =
+      this.empresaPermissionsService.getRecordFilterConditions(
+        userEmpresa.empresa,
+      );
+
+    // Aplicar filtro de empresa si es necesario
+    if (filterConditions.shouldFilter && filterConditions.allowedClientes) {
+      whereConditions.cliente = In(filterConditions.allowedClientes);
     }
 
-    // Resto de filtros existentes
+    // Resto de filtros existentes con validación de permisos
     if (query.codigo) whereConditions.codigo = ILike(`%${query.codigo}%`);
+
     if (query.cliente) {
-      // Si no es usuario Ayni y ya hay filtro de cliente, combinarlo
-      if (!userEmpresa.isAyniUser) {
-        // Solo buscar dentro de su empresa
-        if (
-          query.cliente
-            .toLowerCase()
-            .includes(userEmpresa.empresa.toLowerCase())
-        ) {
+      if (filterConditions.shouldFilter) {
+        // Usuario no-Ayni: verificar que busque dentro de su empresa
+        const canSearchClient =
+          this.empresaPermissionsService.canViewCompanyRecords(
+            userEmpresa.empresa,
+            query.cliente,
+          );
+
+        if (canSearchClient) {
           whereConditions.cliente = ILike(`%${query.cliente}%`);
         } else {
-          // Si busca otro cliente, no mostrar nada
-          whereConditions.cliente = 'NO_MATCH_EMPRESA_RESTRICTION';
+          // Si busca una empresa no permitida, no mostrar resultados
+          whereConditions.cliente = 'EMPRESA_NO_PERMITIDA';
         }
       } else {
-        // Usuario Ayni puede buscar cualquier cliente
+        // Usuario Ayni: puede buscar cualquier cliente
         whereConditions.cliente = Like(`%${query.cliente}%`);
       }
     }
@@ -231,7 +242,7 @@ export class RecordsService {
     if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
     if (query.seec) whereConditions.seec = query.seec;
 
-    // Filtros de fechas
+    // Filtros de fechas 
     if (query.fecha_caducidad_desde && query.fecha_caducidad_hasta) {
       whereConditions.fecha_caducidad = Between(
         new Date(String(query.fecha_caducidad_desde)),
@@ -276,6 +287,27 @@ export class RecordsService {
     const [records, total] = await this.recordRepository.findAndCount(options);
 
     return PaginationHelper.createResponse(records, total, page, limit);
+  }
+
+  /**
+   * Validar acceso a un registro específico
+   */
+  async validateRecordAccess(
+    recordId: number,
+    userEmpresa: string,
+  ): Promise<boolean> {
+    const record = await this.recordRepository.findOne({
+      where: { id: recordId },
+    });
+
+    if (!record) {
+      return false;
+    }
+
+    return this.empresaPermissionsService.canAccessRecord(
+      userEmpresa,
+      record.cliente,
+    );
   }
 
   async findOne(id: number): Promise<Record> {

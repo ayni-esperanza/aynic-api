@@ -28,6 +28,7 @@ import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { StatusUpdateService } from '../schedules/status-update.service';
+import { EmpresaPermissionsService } from './services/empresa-permissions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EmpresaFilterGuard } from '../auth/guards/empresa-filter.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -46,6 +47,7 @@ export class RecordsController {
   constructor(
     private readonly recordsService: RecordsService,
     private readonly statusUpdateService: StatusUpdateService,
+    private readonly empresaPermissionsService: EmpresaPermissionsService,
   ) {}
 
   private getTrackingContext(request: any, user: any): TrackingContext {
@@ -190,6 +192,53 @@ export class RecordsController {
         codigo: 'El código debe ser único en el sistema',
         codigo_placa: 'El código de placa debe ser único en el sistema',
       },
+    };
+  }
+
+  @Get('ui-permissions')
+  @Roles('ADMINISTRADOR', 'USUARIO')
+  @UseGuards(EmpresaFilterGuard)
+  @ApiOperation({
+    summary: 'Obtener permisos de interfaz según empresa del usuario',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración de permisos para el frontend',
+    schema: {
+      type: 'object',
+      properties: {
+        showAllCompaniesFilter: { type: 'boolean' },
+        defaultCompanyFilter: { type: 'string', nullable: true },
+        canCreateForOtherCompanies: { type: 'boolean' },
+        restrictedMessage: { type: 'string', nullable: true },
+        empresa: { type: 'string' },
+        isAyniUser: { type: 'boolean' },
+      },
+    },
+  })
+  getUIPermissions(@Req() request: any) {
+    const userEmpresa = request.userEmpresa;
+
+    if (!userEmpresa) {
+      return {
+        showAllCompaniesFilter: false,
+        defaultCompanyFilter: null,
+        canCreateForOtherCompanies: false,
+        restrictedMessage:
+          'Error: No se pudo determinar la empresa del usuario',
+        empresa: 'Desconocida',
+        isAyniUser: false,
+      };
+    }
+
+    const uiPermissions = this.empresaPermissionsService.getUIPermissions(
+      userEmpresa.empresa,
+    );
+
+    return {
+      ...uiPermissions,
+      empresa: userEmpresa.empresa,
+      isAyniUser: userEmpresa.isAyniUser,
     };
   }
 
