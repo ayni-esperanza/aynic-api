@@ -34,6 +34,8 @@ import { Maintenance } from './maintenance/entities/maintenance.entity';
 import { RecordRelationshipModule } from './record-relationships/record-relationship.module';
 import { RecordRelationship } from './record-relationships/entities/record-relationship.entity';
 
+import { ReportsModule } from './reports/reports.module';
+
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -135,6 +137,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     AuthorizationCodeModule,
     MaintenanceModule,
     RecordRelationshipModule,
+    ReportsModule,
   ],
   providers: [
     // Rate Limiting Guard globalmente
