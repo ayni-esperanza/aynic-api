@@ -167,6 +167,9 @@ export class IsValidRecordStatusConstraint
     'VENCIDO',
     'INACTIVO',
     'MANTENIMIENTO',
+    'REEMPLAZADA',
+    'DIVIDIDA',
+    'ACTUALIZADA',
   ];
 
   validate(status: unknown): boolean {

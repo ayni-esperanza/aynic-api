@@ -31,6 +31,9 @@ import { AuthorizationCode } from './authorization-codes/entities/authorization-
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { Maintenance } from './maintenance/entities/maintenance.entity';
 
+import { RecordRelationshipModule } from './record-relationships/record-relationship.module';
+import { RecordRelationship } from './record-relationships/entities/record-relationship.entity';
+
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -110,6 +113,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
             Accident,
             AuthorizationCode,
             Maintenance,
+            RecordRelationship,
           ],
           synchronize: true,
           autoLoadEntities: true,
@@ -130,6 +134,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     AccidentsModule,
     AuthorizationCodeModule,
     MaintenanceModule,
+    RecordRelationshipModule,
   ],
   providers: [
     // Rate Limiting Guard globalmente

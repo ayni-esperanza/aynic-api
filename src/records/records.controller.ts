@@ -172,6 +172,9 @@ export class RecordsController {
         'VENCIDO',
         'INACTIVO',
         'MANTENIMIENTO',
+        'REEMPLAZADA',
+        'DIVIDIDA',
+        'ACTUALIZADA',
       ],
       longitud_maxima: {
         codigo: 50,
