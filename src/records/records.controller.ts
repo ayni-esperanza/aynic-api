@@ -11,6 +11,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,6 +31,7 @@ import { UpdateRecordDto } from './dto/update-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { StatusUpdateService } from '../schedules/status-update.service';
 import { EmpresaPermissionsService } from './services/empresa-permissions.service';
+import { AuthorizationCodeService } from '../authorization-codes/authorization-code.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EmpresaFilterGuard } from '../auth/guards/empresa-filter.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -44,10 +47,13 @@ import {
 @UseInterceptors(TrackingInterceptor)
 @ApiBearerAuth()
 export class RecordsController {
+  private readonly logger = new Logger(RecordsController.name);
+
   constructor(
     private readonly recordsService: RecordsService,
     private readonly statusUpdateService: StatusUpdateService,
     private readonly empresaPermissionsService: EmpresaPermissionsService,
+    private readonly authorizationCodeService: AuthorizationCodeService,
   ) {}
 
   private getTrackingContext(request: any, user: any): TrackingContext {
@@ -380,21 +386,76 @@ export class RecordsController {
   }
 
   @Delete(':id')
-  @Roles('ADMINISTRADOR')
+  @Roles('ADMINISTRADOR', 'USUARIO') // usuarios pueden eliminar con autorización
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un registro (Solo Administradores)' })
+  @ApiOperation({
+    summary: 'Eliminar un registro',
+    description:
+      'Administradores: eliminación directa. Usuarios: eliminación directa si ≤3 días, sino requiere autorización.',
+  })
   @ApiResponse({ status: 204, description: 'Registro eliminado exitosamente' })
   @ApiResponse({ status: 404, description: 'Registro no encontrado' })
   @ApiResponse({
     status: 403,
-    description: 'Acceso denegado - Se requiere rol de administrador',
+    description:
+      'Código de autorización requerido para registros antiguos (>3 días)',
   })
   async remove(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: AuthenticatedUser,
     @Req() request: any,
+    @Query('authorization_code') authorizationCode?: string,
   ) {
     const trackingContext = this.getTrackingContext(request, user);
+
+    // Si es administrador, eliminar directamente
+    if (user.role === 'ADMINISTRADOR') {
+      await this.recordsService.remove(id, trackingContext);
+      return;
+    }
+
+    // Para usuarios: verificar si el registro fue creado hace más de 3 días
+    const canDeleteDirectly = await this.recordsService.canUserDeleteDirectly(
+      id,
+      user.userId,
+    );
+
+    if (canDeleteDirectly) {
+      // Puede eliminar directamente (≤ 3 días)
+      await this.recordsService.remove(id, trackingContext);
+      return;
+    }
+
+    // Necesita código de autorización (> 3 días)
+    if (!authorizationCode) {
+      throw new ForbiddenException(
+        'Este registro fue creado hace más de 3 días y requiere autorización de un administrador. ' +
+          'Solicite autorización usando POST /authorization-codes/request',
+      );
+    }
+
+    // Validar código de autorización
+    const authService = this.authorizationCodeService; // Inyectar en constructor
+    const validation = await authService.validateAuthorizationCode(
+      {
+        record_id: id,
+        authorization_code: authorizationCode,
+      },
+      user.userId,
+    );
+
+    if (!validation.valid) {
+      throw new ForbiddenException(
+        'Código de autorización inválido o expirado',
+      );
+    }
+
+    // Proceder con eliminación autorizada
     await this.recordsService.remove(id, trackingContext);
+
+    // Log para auditoría
+    this.logger.log(
+      `Registro ${id} eliminado por usuario ${user.username} con autorización ${validation.authorization_id}`,
+    );
   }
 }

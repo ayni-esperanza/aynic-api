@@ -8,6 +8,7 @@ import { ScheduleModule } from '../schedules/schedules.module';
 import { RecordImagesModule } from '../record-images/record-images.module';
 import { RecordMovementHistoryModule } from '../record-movement-history/record-movement-history.module';
 import { AuthModule } from '../auth/auth.module';
+import { AuthorizationCodeModule } from '../authorization-codes/authorization-code.module';
 import { EmpresaPermissionsService } from './services/empresa-permissions.service';
 
 @Module({
@@ -17,15 +18,10 @@ import { EmpresaPermissionsService } from './services/empresa-permissions.servic
     forwardRef(() => RecordImagesModule),
     RecordMovementHistoryModule,
     AuthModule, // Proporciona EmpresaFilterGuard con UserRepository
+    forwardRef(() => AuthorizationCodeModule),
   ],
   controllers: [RecordsController],
-  providers: [
-    RecordsService,
-    EmpresaPermissionsService,
-  ],
-  exports: [
-    RecordsService,
-    EmpresaPermissionsService,
-  ],
+  providers: [RecordsService, EmpresaPermissionsService],
+  exports: [RecordsService, EmpresaPermissionsService],
 })
 export class RecordsModule {}

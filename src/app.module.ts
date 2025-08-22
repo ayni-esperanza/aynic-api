@@ -25,6 +25,9 @@ import { RecordMovementHistory } from './record-movement-history/entities/record
 import { AccidentsModule } from './accidents/accidents.module';
 import { Accident } from './accidents/entities/accident.entity';
 
+import { AuthorizationCodeModule } from './authorization-codes/authorization-code.module';
+import { AuthorizationCode } from './authorization-codes/entities/authorization-code.entity';
+
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -102,6 +105,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
             RecordImage,
             RecordMovementHistory,
             Accident,
+            AuthorizationCode,
           ],
           synchronize: true,
           autoLoadEntities: true,
@@ -120,6 +124,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     RecordImagesModule,
     RecordMovementHistoryModule,
     AccidentsModule,
+    AuthorizationCodeModule,
   ],
   providers: [
     // Rate Limiting Guard globalmente

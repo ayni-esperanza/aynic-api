@@ -306,4 +306,33 @@ export class MovementTrackingService {
 
     return `Registro ${recordCode} actualizado: ${fieldDescriptions.join(', ')}`;
   }
+
+  /**
+   * Obtener la fecha de creación de un registro desde el historial
+   */
+  async getRecordCreationDate(recordId: number): Promise<{
+    action_date: Date;
+    user_id: number;
+  } | null> {
+    // Usar query directa para obtener la fecha de creación
+    const creationEntries = await this.movementHistoryService.findAll({
+      record_id: recordId,
+      action: MovementAction.CREATE,
+      getPage: () => 1,
+      getLimit: () => 1,
+      getSortBy: () => 'action_date',
+      getSortOrder: () => 'ASC',
+      getOffset: () => 0,
+    });
+
+    if (!creationEntries.data || creationEntries.data.length === 0) {
+      return null;
+    }
+
+    const creation = creationEntries.data[0];
+    return {
+      action_date: creation.action_date,
+      user_id: creation.user_id || 0,
+    };
+  }
 }

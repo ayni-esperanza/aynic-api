@@ -571,6 +571,54 @@ export class RecordsService {
     }));
   }
 
+  /**
+   * Verificar si un usuario puede eliminar un registro directamente (sin autorización)
+   * Regla: Solo si el registro fue creado hace 3 días o menos por el mismo usuario
+   */
+  async canUserDeleteDirectly(
+    recordId: number,
+    userId: number,
+  ): Promise<boolean> {
+    try {
+      // Buscar directamente en el historial de movimientos con query SQL
+      const creationEntry = await this.recordRepository.query(
+        `
+      SELECT action_date, user_id 
+      FROM record_movement_history 
+      WHERE record_id = $1 AND action = 'CREATE' 
+      ORDER BY action_date ASC 
+      LIMIT 1
+    `,
+        [recordId],
+      );
+
+      if (!creationEntry || creationEntry.length === 0) {
+        // Si no hay historial de creación, asumir que es antiguo y requerir autorización
+        return false;
+      }
+
+      const creation = creationEntry[0];
+
+      // Verificar que fue creado por el mismo usuario
+      if (creation.user_id !== userId) {
+        // Solo puede eliminar sus propios registros sin autorización
+        return false;
+      }
+
+      // Calcular diferencia en días
+      const now = new Date();
+      const createdAt = new Date(creation.action_date);
+      const diffInMs = now.getTime() - createdAt.getTime();
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+      // Permitir eliminación directa si han pasado 3 días o menos
+      return diffInDays <= 3;
+    } catch (error) {
+      // En caso de error, ser conservador y requerir autorización
+      return false;
+    }
+  }
+
   async getRecordsByStatus(estado: string): Promise<Record[]> {
     return await this.recordRepository.find({
       where: { estado_actual: estado },
