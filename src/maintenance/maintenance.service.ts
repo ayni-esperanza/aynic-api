@@ -235,32 +235,22 @@ export class MaintenanceService {
     size: number;
     publicUrl: string;
   }> {
-    // Usar el servicio R2 existente pero con ruta diferente
+    // Generar nombre único
     const timestamp = Date.now();
     const fileExtension = file.originalname.split('.').pop() || 'jpg';
     const filename = `maintenance-${timestamp}.${fileExtension}`;
 
-    // Estructura: maintenances/record-{id}/maintenance-{timestamp}.jpg
-    const key = `maintenances/record-${recordId}/${filename}`;
-
-    // Comprimir imagen usando el servicio existente
     const uploadResult = await this.r2Service.uploadFile(
       file,
       recordId,
       userId,
     );
 
-    // Modificar la key para usar la estructura de maintenances
-    const maintenanceKey = key;
-
     return {
       filename,
-      key: maintenanceKey,
+      key: uploadResult.key, // key real
       size: uploadResult.size,
-      publicUrl: uploadResult.publicUrl.replace(
-        uploadResult.key,
-        maintenanceKey,
-      ),
+      publicUrl: uploadResult.publicUrl, // URL real
     };
   }
 
