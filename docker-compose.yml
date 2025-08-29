@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ayni
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ayni"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # overrides necesarios dentro de docker
+      DB_HOST: postgres
+      NODE_ENV: production
+      PORT: 3000
+
+      # compatibilidad nombres R2
+      R2_BUCKET: ${R2_BUCKET_NAME}
+      # endpoint R2 (usa tu ACCOUNT_ID del .env)
+      R2_ENDPOINT: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

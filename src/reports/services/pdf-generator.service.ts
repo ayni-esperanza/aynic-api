@@ -24,7 +24,7 @@ export class PdfGeneratorService {
           margin: 40,
           info: {
             Title: metadata.titulo,
-            Author: 'Sistema Aynic',
+            Author: 'Sistema Ayni',
             Subject: 'Reporte de Líneas de Vida Vencidas',
             CreationDate: metadata.fecha_generacion,
           },
@@ -81,7 +81,7 @@ export class PdfGeneratorService {
     doc
       .fontSize(24)
       .fillColor(colors.primary)
-      .text('AYNIC', 50, 50, { align: 'left' })
+      .text('AYNI', 50, 50, { align: 'left' })
       .fontSize(12)
       .fillColor(colors.secondary)
       .text('Sistema de Gestión de Líneas de Vida', 50, 80);
@@ -308,7 +308,7 @@ export class PdfGeneratorService {
         .fontSize(8)
         .fillColor(colors.secondary)
         .text(
-          `Sistema Aynic - Reporte generado el ${metadata.fecha_generacion.toLocaleString('es-PE')}`,
+          `Sistema Ayni - Reporte generado el ${metadata.fecha_generacion.toLocaleString('es-PE')}`,
           50,
           doc.page.height - 45,
           { align: 'left' },

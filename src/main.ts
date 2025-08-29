@@ -91,7 +91,7 @@ async function bootstrap() {
 
   // Swagger
   const config = new DocumentBuilder()
-    .setTitle('Aynic API')
+    .setTitle('Ayni API')
     .setDescription(
       'API para gestión de líneas de vida y usuarios en el sistema Ayni.',
     )

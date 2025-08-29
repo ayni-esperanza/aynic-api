@@ -207,22 +207,30 @@ export class ReportsService {
     const today = new Date();
 
     return records.map((record) => {
+      // Convertir fecha_caducidad a Date si es un string
+      const fechaCaducidad =
+        typeof record.fecha_caducidad === 'string'
+          ? new Date(record.fecha_caducidad)
+          : record.fecha_caducidad;
+
       // Calcular días vencidos
       const diasVencido = Math.floor(
-        (today.getTime() - record.fecha_caducidad.getTime()) /
-          (1000 * 60 * 60 * 24),
+        (today.getTime() - fechaCaducidad.getTime()) / (1000 * 60 * 60 * 24),
       );
 
       return {
         codigo: record.codigo,
         cliente: record.cliente || 'No especificado',
         ubicacion: record.ubicacion || 'No especificada',
-        fecha_caducidad: record.fecha_caducidad,
+        fecha_caducidad: fechaCaducidad, // Usar la fecha convertida
         estado_actual: record.estado_actual || 'VENCIDO',
         dias_vencido: diasVencido,
         longitud: record.longitud,
         tipo_linea: record.tipo_linea,
-        fecha_instalacion: record.fecha_instalacion,
+        fecha_instalacion:
+          typeof record.fecha_instalacion === 'string'
+            ? new Date(record.fecha_instalacion)
+            : record.fecha_instalacion,
       };
     });
   }
