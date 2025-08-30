@@ -16,7 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { ExpiredRecordsReportDto } from './dto/reports.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   Roles,
@@ -26,7 +26,7 @@ import {
 
 @ApiTags('reports')
 @Controller('reports')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}

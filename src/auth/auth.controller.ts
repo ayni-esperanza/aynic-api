@@ -1,10 +1,11 @@
-import { Controller, Post, Body, UnauthorizedException, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, Get, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
 import { Public } from './decorators/auth.decorators';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SessionAuthGuard } from './guards/session-auth.guard';
 import { CurrentUser, AuthenticatedUser } from './decorators/auth.decorators';
 
 @ApiTags('auth')
@@ -13,13 +14,13 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public() // endpoint es público
-  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 intentos por minuto
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Post('login')
   @ApiOperation({ summary: 'Iniciar sesión' })
   @ApiResponse({ status: 200, description: 'Login exitoso' })
   @ApiResponse({ status: 401, description: 'Credenciales inválidas' })
   @ApiResponse({ status: 429, description: 'Demasiados intentos de login' })
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
     const user = await this.authService.validateUser(
       loginDto.username,
       loginDto.password,
@@ -27,39 +28,55 @@ export class AuthController {
     if (!user) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
-    return this.authService.login(user);
+
+    // Obtener IP y User-Agent
+    const ipAddress = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+    const userAgent = req.get('User-Agent');
+
+    return this.authService.login(user, ipAddress, userAgent);
+  }
+
+  @Post('logout')
+  @UseGuards(SessionAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cerrar sesión' })
+  @ApiResponse({ status: 200, description: 'Logout exitoso' })
+  async logout(@Req() req: Request) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+      await this.authService.logout(token);
+    }
+    return { message: 'Sesión cerrada exitosamente' };
+  }
+
+  @Get('verify-session')
+  @UseGuards(SessionAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verificar si la sesión actual es válida' })
+  @ApiResponse({ status: 200, description: 'Sesión válida' })
+  @ApiResponse({ status: 401, description: 'Sesión inválida' })
+  async verifySession(@Req() req: Request) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      throw new UnauthorizedException('Token no proporcionado');
+    }
+
+    const isValid = await this.authService.validateSession(token);
+    if (!isValid) {
+      throw new UnauthorizedException('Sesión inválida o expirada');
+    }
+
+    return { valid: true, message: 'Sesión válida' };
   }
 
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener perfil del usuario autenticado' })
-  @ApiResponse({ status: 200, description: 'Perfil del usuario obtenido exitosamente' })
-  @ApiResponse({ status: 401, description: 'Token inválido o expirado' })
-  async getProfile(@CurrentUser() user: AuthenticatedUser) {
-    return {
-      userId: user.userId,
-      username: user.username,
-      role: user.role,
-      message: 'Token válido'
-    };
-  }
-
-  @Get('verify')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Verificar si el token JWT es válido' })
-  @ApiResponse({ status: 200, description: 'Token válido' })
-  @ApiResponse({ status: 401, description: 'Token inválido o expirado' })
-  async verifyToken(@CurrentUser() user: AuthenticatedUser) {
-    return {
-      valid: true,
-      user: {
-        userId: user.userId,
-        username: user.username,
-        role: user.role,
-      },
-      timestamp: new Date().toISOString(),
-    };
+  @ApiResponse({ status: 200, description: 'Perfil obtenido exitosamente' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  getProfile(@CurrentUser() user: AuthenticatedUser) {
+    return user;
   }
 }

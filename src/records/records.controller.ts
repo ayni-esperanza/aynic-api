@@ -32,7 +32,7 @@ import { GetRecordsQueryDto } from './dto/get-records-query.dto';
 import { StatusUpdateService } from '../schedules/status-update.service';
 import { EmpresaPermissionsService } from './services/empresa-permissions.service';
 import { AuthorizationCodeService } from '../authorization-codes/authorization-code.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { EmpresaFilterGuard } from '../auth/guards/empresa-filter.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
@@ -43,7 +43,7 @@ import {
 
 @ApiTags('records')
 @Controller('records')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @UseInterceptors(TrackingInterceptor)
 @ApiBearerAuth()
 export class RecordsController {

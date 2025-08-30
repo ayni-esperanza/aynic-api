@@ -6,11 +6,13 @@ import { User } from '../users/entities/user.entity';
 import { AuthorizationCodeService } from './authorization-code.service';
 import { AuthorizationCodeController } from './authorization-code.controller';
 import { RecordMovementHistoryModule } from '../record-movement-history/record-movement-history.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AuthorizationCode, RecordEntity, User]),
     RecordMovementHistoryModule,
+    AuthModule,
   ],
   controllers: [AuthorizationCodeController],
   providers: [AuthorizationCodeService],

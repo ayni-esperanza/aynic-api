@@ -29,7 +29,7 @@ import {
   EstadoAccidente,
   SeveridadAccidente,
 } from './dto/accident.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   Roles,
@@ -39,7 +39,7 @@ import {
 
 @ApiTags('accidents')
 @Controller('accidents')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class AccidentsController {
   constructor(private readonly accidentsService: AccidentsService) {}

@@ -27,7 +27,7 @@ import {
   CreateMaintenanceDto,
   MaintenanceResponseDto,
 } from './dto/maintenance.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   Roles,
@@ -38,7 +38,7 @@ import { multerConfig } from '../record-images/config/multer.config';
 
 @ApiTags('maintenance')
 @Controller('maintenance')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class MaintenanceController {
   constructor(private readonly maintenanceService: MaintenanceService) {}

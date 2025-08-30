@@ -21,7 +21,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateOwnProfileDto } from './dto/update-user.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   Roles,
@@ -31,7 +31,7 @@ import {
 
 @ApiTags('users')
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard) // Protección global para este controlador
+@UseGuards(SessionAuthGuard, RolesGuard) // Protección global para este controlador
 @ApiBearerAuth() // Documentación Swagger para autenticación
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

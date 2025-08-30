@@ -36,6 +36,8 @@ import { RecordRelationship } from './record-relationships/entities/record-relat
 
 import { ReportsModule } from './reports/reports.module';
 
+import { UserSession } from './auth/entities/user-session.entity';
+
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
@@ -116,6 +118,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
             AuthorizationCode,
             Maintenance,
             RecordRelationship,
+            UserSession,
           ],
           synchronize: true,
           autoLoadEntities: true,

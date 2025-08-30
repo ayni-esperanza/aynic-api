@@ -6,9 +6,10 @@ import { AlertsService } from './alerts.service';
 import { AlertsController } from './alerts.controller';
 import { AlertGeneratorService } from './services/alert-generator.service';
 import { StatusCalculatorService } from '../records/services/status-calculator.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Alert, RecordEntity])],
+  imports: [TypeOrmModule.forFeature([Alert, RecordEntity]), AuthModule],
   controllers: [AlertsController],
   providers: [AlertsService, AlertGeneratorService, StatusCalculatorService],
   exports: [AlertsService, AlertGeneratorService],

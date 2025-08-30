@@ -32,7 +32,7 @@ import {
 import { Req } from '@nestjs/common';
 import { TrackingInterceptor } from '../record-movement-history/tracking.interceptor';
 import { TrackingContext } from '../record-movement-history/movement-tracking.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   Roles,
@@ -43,7 +43,7 @@ import { multerConfig } from './config/multer.config';
 
 @ApiTags('record-images')
 @Controller('records/:recordId/image')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @UseInterceptors(TrackingInterceptor)
 @ApiBearerAuth()
 export class RecordImagesController {
@@ -230,7 +230,7 @@ export class RecordImagesController {
 // Controlador adicional para administración de imágenes
 @ApiTags('admin-images')
 @Controller('admin/images')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class AdminImagesController {
   constructor(private readonly recordImagesService: RecordImagesService) {}

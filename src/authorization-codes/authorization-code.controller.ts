@@ -14,7 +14,7 @@ import {
   ValidateAuthorizationDto,
   AuthorizationRequestResponseDto,
 } from './dto/authorization-code.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   Roles,
@@ -23,7 +23,7 @@ import {
 } from '../auth/decorators/auth.decorators';
 @ApiTags('authorization-codes')
 @Controller('authorization-codes')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @UseInterceptors(TrackingInterceptor)
 @ApiBearerAuth()
 export class AuthorizationCodeController {

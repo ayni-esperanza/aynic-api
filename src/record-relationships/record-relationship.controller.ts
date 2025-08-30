@@ -23,7 +23,7 @@ import {
   RelationshipResponseDto,
   CreateRelationshipResponseDto,
 } from './dto/record-relationship.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import {
   Roles,
@@ -34,7 +34,7 @@ import { TrackingContext } from '../record-movement-history/movement-tracking.se
 
 @ApiTags('record-relationships')
 @Controller('record-relationships')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @UseInterceptors(TrackingInterceptor)
 @ApiBearerAuth()
 export class RecordRelationshipController {

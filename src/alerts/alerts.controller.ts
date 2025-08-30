@@ -27,13 +27,13 @@ import {
   UpdateAlertDto,
   AlertFiltersDto,
 } from './dto/alert.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
 
 @ApiTags('alerts')
 @Controller('alerts')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class AlertsController {
   constructor(

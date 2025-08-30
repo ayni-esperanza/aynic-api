@@ -5,15 +5,19 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '../users/users.module';
 import { User } from '../users/entities/user.entity';
+import { UserSession } from './entities/user-session.entity';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SessionAuthGuard } from './guards/session-auth.guard';
 import { EmpresaFilterGuard } from './guards/empresa-filter.guard';
+import { SessionCleanupService } from './session-cleanup.service';
 
 @Module({
   imports: [
     forwardRef(() => UsersModule),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, UserSession]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -30,10 +34,15 @@ import { EmpresaFilterGuard } from './guards/empresa-filter.guard';
   providers: [
     AuthService,
     JwtStrategy,
+    JwtAuthGuard,
+    SessionAuthGuard,
     EmpresaFilterGuard,
+    SessionCleanupService,
   ],
   exports: [
     AuthService,
+    JwtAuthGuard,
+    SessionAuthGuard,
     EmpresaFilterGuard,
   ],
 })

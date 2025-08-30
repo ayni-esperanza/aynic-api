@@ -11,11 +11,13 @@ import { R2Service } from './services/r2.service';
 import { ImageCompressionService } from './services/image-compression.service';
 import { ClamavScanService } from './services/clamav-scan.service';
 import { RecordMovementHistoryModule } from '../record-movement-history/record-movement-history.module'; // NUEVO
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([RecordImage, RecordEntity]),
     RecordMovementHistoryModule,
+    AuthModule,
   ],
   controllers: [RecordImagesController, AdminImagesController],
   providers: [RecordImagesService, R2Service, ImageCompressionService, ClamavScanService],

@@ -22,14 +22,14 @@ import {
   MovementHistoryFiltersDto,
   MovementHistoryResponseDto,
 } from './dto/record-movement-history.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
 import { MovementAction } from './entities/record-movement-history.entity';
 
 @ApiTags('record-movement-history')
 @Controller('record-movement-history')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class RecordMovementHistoryController {
   constructor(
