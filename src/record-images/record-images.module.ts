@@ -9,6 +9,7 @@ import {
 } from './record-images.controller';
 import { R2Service } from './services/r2.service';
 import { ImageCompressionService } from './services/image-compression.service';
+import { ClamavScanService } from './services/clamav-scan.service';
 import { RecordMovementHistoryModule } from '../record-movement-history/record-movement-history.module'; // NUEVO
 
 @Module({
@@ -17,7 +18,7 @@ import { RecordMovementHistoryModule } from '../record-movement-history/record-m
     RecordMovementHistoryModule,
   ],
   controllers: [RecordImagesController, AdminImagesController],
-  providers: [RecordImagesService, R2Service, ImageCompressionService],
-  exports: [RecordImagesService, R2Service, ImageCompressionService],
+  providers: [RecordImagesService, R2Service, ImageCompressionService, ClamavScanService],
+  exports: [RecordImagesService, R2Service, ImageCompressionService, ClamavScanService],
 })
 export class RecordImagesModule {}

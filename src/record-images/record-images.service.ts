@@ -4,12 +4,14 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RecordImage } from './entities/record-image.entity';
 import { Record as RecordEntity } from '../records/entities/record.entity';
 import { R2Service } from './services/r2.service';
+import { ClamavScanService } from './services/clamav-scan.service';
 import {
   MovementTrackingService,
   TrackingContext,
@@ -19,6 +21,7 @@ import {
   ImageResponseDto,
   UpdateImageDto,
 } from './dto/image.dto';
+import { Readable } from 'stream';
 
 @Injectable()
 export class RecordImagesService {
@@ -30,11 +33,45 @@ export class RecordImagesService {
     @InjectRepository(RecordEntity)
     private readonly recordRepository: Repository<RecordEntity>,
     private readonly r2Service: R2Service,
+    private readonly clamavScanService: ClamavScanService,
     private readonly movementTrackingService: MovementTrackingService,
   ) {}
 
   /**
-   * Subir imagen para un record con compresión automática
+   * Escanear archivo con ClamAV
+   */
+  private async scanFileForViruses(file: Express.Multer.File): Promise<void> {
+    try {
+      this.logger.log(`Iniciando escaneo antivirus para archivo: ${file.originalname}`);
+      
+      const result = await this.clamavScanService.scanStream(
+        Readable.from(file.buffer)
+      );
+      
+      if (!result.ok) {
+        this.logger.warn(`Archivo infectado detectado: ${file.originalname} - ${result.found || result.raw}`);
+        throw new BadRequestException(`Archivo infectado detectado: ${result.found || 'Virus detectado'}`);
+      }
+      
+      this.logger.log(`Archivo limpio: ${file.originalname}`);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error; // Re-lanzar errores de archivos infectados
+      }
+      
+      const msg = String(error?.message || '');
+      if (msg.includes('timeout') || msg.includes('ECONNREFUSED')) {
+        this.logger.error('Servicio antivirus no disponible:', error);
+        throw new ServiceUnavailableException('Servicio antivirus no disponible');
+      }
+      
+      this.logger.error('Error en escaneo antivirus:', error);
+      throw new BadRequestException('Error al escanear archivo');
+    }
+  }
+
+  /**
+   * Subir imagen para un record con compresión automática y escaneo antivirus
    */
   async uploadImage(
     recordId: number,
@@ -64,6 +101,9 @@ export class RecordImagesService {
     }
 
     try {
+      // Escanear archivo con antivirus antes de procesar
+      await this.scanFileForViruses(file);
+
       // Subir archivo a R2 con compresión automática
       const uploadResult = await this.r2Service.uploadFile(
         file,
@@ -351,6 +391,25 @@ export class RecordImagesService {
     }
 
     return result;
+  }
+
+  /**
+   * Verificar estado del servicio ClamAV
+   */
+  async getClamavStatus() {
+    try {
+      const ping = await this.clamavScanService.ping();
+      const version = await this.clamavScanService.version();
+      
+      return {
+        status: 'healthy',
+        version: version.trim(),
+        ping: ping,
+      };
+    } catch (error) {
+      this.logger.error('Error al verificar estado de ClamAV:', error);
+      throw new ServiceUnavailableException('Servicio antivirus no disponible');
+    }
   }
 
   /**

@@ -235,6 +235,29 @@ export class RecordImagesController {
 export class AdminImagesController {
   constructor(private readonly recordImagesService: RecordImagesService) {}
 
+  @Get('clamav/status')
+  @Roles('ADMINISTRADOR')
+  @ApiOperation({ summary: 'Verificar estado del servicio antivirus ClamAV' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado del servicio antivirus',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string' },
+        version: { type: 'string' },
+        ping: { type: 'boolean' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Servicio antivirus no disponible',
+  })
+  async getClamavStatus() {
+    return this.recordImagesService.getClamavStatus();
+  }
+
   @Get('all')
   @Roles('ADMINISTRADOR')
   @ApiOperation({

@@ -6,7 +6,7 @@ export const multerConfig: MulterOptions = {
   storage: undefined, // Usa memory storage por defecto
 
   limits: {
-    fileSize: Number(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // 5MB default
+    fileSize: Number(process.env.UPLOAD_MAX_MB || 6) * 1024 * 1024, // 6MB default
     files: 1, // Solo un archivo por request
   },
 
@@ -16,6 +16,8 @@ export const multerConfig: MulterOptions = {
       'image/jpeg',
       'image/jpg',
       'image/png',
+      'image/webp',
+      'image/gif',
     ];
 
     // Validar tipo MIME
@@ -29,7 +31,7 @@ export const multerConfig: MulterOptions = {
     }
 
     // Validar extensión de archivo
-    const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
     const fileExtension = file.originalname
       .toLowerCase()
       .substring(file.originalname.lastIndexOf('.'));
