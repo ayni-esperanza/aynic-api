@@ -41,14 +41,14 @@ services:
     env_file:
       - .env
     environment:
-      # overrides necesarios dentro de docker
+      # overrides dentro de docker
       DB_HOST: postgres
       NODE_ENV: production
       PORT: 3000
 
       # compatibilidad nombres R2
       R2_BUCKET: ${R2_BUCKET_NAME}
-      # endpoint R2 (usa tu ACCOUNT_ID del .env)
+      # endpoint R2 (ACCOUNT_ID del .env)
       R2_ENDPOINT: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
 
       # Config de ClamAV
