@@ -2,14 +2,14 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ayni
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ayni"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -43,7 +43,7 @@ services:
     environment:
       # overrides dentro de docker
       DB_HOST: postgres
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV}
       PORT: 3000
 
       # compatibilidad nombres R2
@@ -54,8 +54,8 @@ services:
       # Config de ClamAV
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
-      CLAMAV_TIMEOUT_MS: 15000
-      UPLOAD_MAX_MB: 6
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS}
+      UPLOAD_MAX_MB: ${UPLOAD_MAX_MB}
     restart: unless-stopped
 
 volumes:

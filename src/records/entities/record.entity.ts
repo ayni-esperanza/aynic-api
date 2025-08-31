@@ -42,6 +42,9 @@ export class Record {
   observaciones: string;
 
   @Column({ nullable: true })
+  seec: string;
+
+  @Column({ nullable: true })
   seccion: string;
 
   @Column({ nullable: true })
