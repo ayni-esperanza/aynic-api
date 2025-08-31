@@ -134,7 +134,9 @@ export class RecordsService {
     if (query.estado_actual)
       whereConditions.estado_actual = query.estado_actual;
     if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
-    if (query.seec) whereConditions.seec = query.seec;
+    if (query.seccion) whereConditions.seccion = query.seccion;
+    if (query.area) whereConditions.area = query.area;
+    if (query.planta) whereConditions.planta = query.planta;
 
     // Rango de fechas de caducidad
     if (query.fecha_caducidad_desde && query.fecha_caducidad_hasta) {
@@ -240,7 +242,9 @@ export class RecordsService {
     if (query.estado_actual)
       whereConditions.estado_actual = query.estado_actual;
     if (query.tipo_linea) whereConditions.tipo_linea = query.tipo_linea;
-    if (query.seec) whereConditions.seec = query.seec;
+    if (query.seccion) whereConditions.seccion = query.seccion;
+    if (query.area) whereConditions.area = query.area;
+    if (query.planta) whereConditions.planta = query.planta;
 
     // Filtros de fechas
     if (query.fecha_caducidad_desde && query.fecha_caducidad_hasta) {
@@ -421,7 +425,9 @@ export class RecordsService {
       fecha_instalacion: record.fecha_instalacion,
       longitud: record.longitud,
       observaciones: record.observaciones,
-      seec: record.seec,
+      seccion: record.seccion,
+      area: record.area,
+      planta: record.planta,
       tipo_linea: record.tipo_linea,
       ubicacion: record.ubicacion,
       fecha_caducidad: record.fecha_caducidad,
@@ -448,7 +454,9 @@ export class RecordsService {
         fecha_instalacion: updatedRecord.fecha_instalacion,
         longitud: updatedRecord.longitud,
         observaciones: updatedRecord.observaciones,
-        seec: updatedRecord.seec,
+        seccion: updatedRecord.seccion,
+        area: updatedRecord.area,
+        planta: updatedRecord.planta,
         tipo_linea: updatedRecord.tipo_linea,
         ubicacion: updatedRecord.ubicacion,
         fecha_caducidad: updatedRecord.fecha_caducidad,

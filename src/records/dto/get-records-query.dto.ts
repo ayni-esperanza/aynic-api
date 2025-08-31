@@ -48,10 +48,20 @@ export class GetRecordsQueryDto extends PaginationDto {
   @IsString()
   ubicacion?: string;
 
-  @ApiPropertyOptional({ description: 'Filtrar por SEEC' })
+  @ApiPropertyOptional({ description: 'Filtrar por sección' })
   @IsOptional()
   @IsString()
-  seec?: string;
+  seccion?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrar por área' })
+  @IsOptional()
+  @IsString()
+  area?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrar por planta' })
+  @IsOptional()
+  @IsString()
+  planta?: string;
 
   @ApiPropertyOptional({
     description: 'Fecha de caducidad desde',

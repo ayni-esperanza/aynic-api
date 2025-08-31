@@ -139,7 +139,9 @@ export class RecordsController {
     required: false,
     description: 'Buscar por ubicación (parcial)',
   })
-  @ApiQuery({ name: 'seec', required: false, description: 'Filtrar por SEEC' })
+  @ApiQuery({ name: 'seccion', required: false, description: 'Filtrar por sección' })
+  @ApiQuery({ name: 'area', required: false, description: 'Filtrar por área' })
+  @ApiQuery({ name: 'planta', required: false, description: 'Filtrar por planta' })
   @ApiQuery({
     name: 'anclaje_equipos',
     required: false,
@@ -181,7 +183,9 @@ export class RecordsController {
         cliente: 100,
         equipo: 100,
         observaciones: 1000,
-        seec: 50,
+        seccion: 50,
+        area: 50,
+        planta: 50,
         tipo_linea: 100,
         ubicacion: 200,
         anclaje_equipos: 100,

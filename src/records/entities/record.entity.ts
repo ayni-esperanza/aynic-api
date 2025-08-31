@@ -42,7 +42,13 @@ export class Record {
   observaciones: string;
 
   @Column({ nullable: true })
-  seec: string;
+  seccion: string;
+
+  @Column({ nullable: true })
+  area: string;
+
+  @Column({ nullable: true })
+  planta: string;
 
   @Column({ nullable: true })
   tipo_linea: string;

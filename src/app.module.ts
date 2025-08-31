@@ -15,31 +15,16 @@ import { AlertsModule } from './alerts/alerts.module';
 import { RecordImagesModule } from './record-images/record-images.module';
 import { RecordMovementHistoryModule } from './record-movement-history/record-movement-history.module';
 
-import { User } from './users/entities/user.entity';
-import { Record } from './records/entities/record.entity';
-import { RecordStatusHistory } from './record-status-history/entities/record-status-history.entity';
-import { Alert } from './alerts/entities/alert.entity';
-import { RecordImage } from './record-images/entities/record-image.entity';
-import { RecordMovementHistory } from './record-movement-history/entities/record-movement-history.entity';
-
 import { AccidentsModule } from './accidents/accidents.module';
-import { Accident } from './accidents/entities/accident.entity';
-
 import { AuthorizationCodeModule } from './authorization-codes/authorization-code.module';
-import { AuthorizationCode } from './authorization-codes/entities/authorization-code.entity';
-
 import { MaintenanceModule } from './maintenance/maintenance.module';
-import { Maintenance } from './maintenance/entities/maintenance.entity';
-
 import { RecordRelationshipModule } from './record-relationships/record-relationship.module';
-import { RecordRelationship } from './record-relationships/entities/record-relationship.entity';
-
 import { ReportsModule } from './reports/reports.module';
-
-import { UserSession } from './auth/entities/user-session.entity';
 
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+
+import { getDatabaseConfig } from './config/database.config';
 
 @Module({
   imports: [
@@ -79,53 +64,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const host = config.get<string>('DB_HOST') ?? 'localhost';
-        const port = +(config.get<number>('DB_PORT') ?? 5432);
-
-        // 1) Bandera explícita por ENV
-        const sslFromEnv = (config.get<string>('DB_SSL') ?? '').toLowerCase();
-
-        // 2) Heurística por host
-        const looksManaged = [
-          'rds.amazonaws.com',
-          'neon.tech',
-          'render.com',
-          'supabase.co',
-          'azure.com',
-          'gcp',
-        ].some((dom) => host.includes(dom));
-
-        // Resultado final: solo true en managed/prod o si DB_SSL=true
-        const enableSSL =
-          sslFromEnv === 'true' || (sslFromEnv !== 'false' && looksManaged);
-
-        return {
-          type: 'postgres',
-          host,
-          port,
-          username: config.get('DB_USERNAME'),
-          password: config.get('DB_PASSWORD'),
-          database: config.get('DB_DATABASE'),
-          entities: [
-            User,
-            Record,
-            RecordStatusHistory,
-            Alert,
-            RecordImage,
-            RecordMovementHistory,
-            Accident,
-            AuthorizationCode,
-            Maintenance,
-            RecordRelationship,
-            UserSession,
-          ],
-          synchronize: true,
-          autoLoadEntities: true,
-          // En TypeORM/pg, pon booleano false para desactivar SSL
-          ssl: enableSSL ? { rejectUnauthorized: false } : false,
-        };
-      },
+      useFactory: (config: ConfigService) => getDatabaseConfig(config),
     }),
     UsersModule,
     RecordsModule,

@@ -124,11 +124,23 @@ export class CreateRecordDto {
   })
   observaciones?: string;
 
-  @ApiProperty({ description: 'Código SEEC', required: false })
+  @ApiProperty({ description: 'Sección', required: false })
   @IsOptional()
   @IsString()
-  @MaxLength(50, { message: 'El código SEEC no puede exceder 50 caracteres' })
-  seec?: string;
+  @MaxLength(50, { message: 'La sección no puede exceder 50 caracteres' })
+  seccion?: string;
+
+  @ApiProperty({ description: 'Área', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50, { message: 'El área no puede exceder 50 caracteres' })
+  area?: string;
+
+  @ApiProperty({ description: 'Planta', required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50, { message: 'La planta no puede exceder 50 caracteres' })
+  planta?: string;
 
   @ApiProperty({ description: 'Tipo de línea de vida', required: false })
   @IsOptional()
