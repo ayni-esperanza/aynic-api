@@ -17,6 +17,9 @@ export class Record {
   @Column({ type: 'varchar', length: 100, nullable: true })
   anclaje_equipos?: string | null;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  anclaje_tipo?: string | null;
+
   @Column({
     type: 'varchar',
     length: 50,

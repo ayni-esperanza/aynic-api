@@ -57,6 +57,15 @@ export class CreateRecordDto {
   anclaje_equipos?: string;
 
   @ApiPropertyOptional({
+    description: 'Tipo de anclaje seleccionado',
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100, { message: 'El tipo de anclaje no puede exceder 100 caracteres' })
+  anclaje_tipo?: string;
+
+  @ApiPropertyOptional({
     description: 'Código de identificación físico de la placa',
     maxLength: 50,
     example: 'PLC-001-A',
