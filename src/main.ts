@@ -51,6 +51,16 @@ function buildCorsOrigin() {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // LOGS TEMPORALES para debug
+  console.log('🔍 === MAIN.TS VARIABLES ===');
+  console.log(' NODE_ENV:', process.env.NODE_ENV);
+  console.log(' PORT:', process.env.PORT);
+  console.log(' DB_HOST:', process.env.DB_HOST);
+  console.log(' DB_DATABASE:', process.env.DB_DATABASE);
+  console.log(' JWT_SECRET:', process.env.JWT_SECRET ? '✅ SET' : '❌ NOT SET');
+  console.log(' R2_ACCOUNT_ID:', process.env.R2_ACCOUNT_ID);
+  console.log('🚀 === FIN MAIN.TS ===');
+
   const corsOrigin = buildCorsOrigin();
   const allowCredentials = process.env.CORS_CREDENTIALS === 'true';
 
