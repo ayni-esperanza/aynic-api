@@ -17,7 +17,7 @@ export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions =
   const port = +(config.get<number>('DB_PORT') ?? 5432);
   const isProduction = config.get('NODE_ENV') === 'production';
   
-  // ← AGREGAR ESTE LOG TEMPORAL
+  // LOG TEMPORAL para debug
   console.log(' NODE_ENV:', config.get('NODE_ENV'));
   console.log(' isProduction:', isProduction);
   console.log('🔍 synchronize:', isProduction ? false : true);
