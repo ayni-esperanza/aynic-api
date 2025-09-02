@@ -6,7 +6,7 @@ export const corsConfig = (): CorsOptions => {
   return {
     origin: isDevelopment
       ? '*' // En desarrollo, permitir cualquier origen
-      : process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'], // En producción, dominios específicos
+      : process.env.CORS_ORIGIN?.split(',') || ['http://localhost', 'http://localhost:3001'], // En producción, dominios específicos
 
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
 

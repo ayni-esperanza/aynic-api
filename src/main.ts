@@ -24,8 +24,8 @@ function buildCorsOrigin() {
   // Caso 2: Lista desde ENV o defaults
   const fromEnv = parseEnvOrigins(process.env.CORS_ORIGIN);
   const defaults: (string | RegExp)[] = [
-    'http://localhost:3000',
-    'http://localhost:5173',
+    'http://localhost',
+    'http://localhost:3001',
     /\.vercel\.app$/,
     /\.trycloudflare\.com$/,
   ];
