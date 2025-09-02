@@ -16,7 +16,12 @@ export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions =
   const host = config.get<string>('DB_HOST') ?? 'localhost';
   const port = +(config.get<number>('DB_PORT') ?? 5432);
   const isProduction = config.get('NODE_ENV') === 'production';
-
+  
+  // ← AGREGAR ESTE LOG TEMPORAL
+  console.log(' NODE_ENV:', config.get('NODE_ENV'));
+  console.log(' isProduction:', isProduction);
+  console.log('🔍 synchronize:', isProduction ? false : true);
+  
   // Configuración SSL simplificada usando DB_SSL_ENABLED
   const sslEnabled = config.get('DB_SSL_ENABLED') === 'true';
   const enableSSL = sslEnabled ? { rejectUnauthorized: false } : false;

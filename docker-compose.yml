@@ -43,7 +43,7 @@ services:
     environment:
       # overrides dentro de docker
       DB_HOST: postgres
-      NODE_ENV: ${NODE_ENV}
+      NODE_ENV: development  # ← FORZAR development
       PORT: 3000
 
       # compatibilidad nombres R2
