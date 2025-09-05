@@ -26,6 +26,7 @@ function buildCorsOrigin() {
   const defaults: (string | RegExp)[] = [
     'http://localhost',
     'http://localhost:3001',
+    'https://linea.aynisac.com',
     /\.vercel\.app$/,
     /\.trycloudflare\.com$/,
   ];
