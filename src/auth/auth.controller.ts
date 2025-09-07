@@ -4,6 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Public } from './decorators/auth.decorators';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { CurrentUser, AuthenticatedUser } from './decorators/auth.decorators';
@@ -78,5 +79,20 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'No autorizado' })
   getProfile(@CurrentUser() user: AuthenticatedUser) {
     return user;
+  }
+
+  @Post('change-password')
+  @UseGuards(SessionAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cambiar contraseña del usuario autenticado' })
+  @ApiResponse({ status: 200, description: 'Contraseña cambiada exitosamente' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() changePasswordDto: ChangePasswordDto
+  ) {
+    await this.authService.changePassword(user.userId, changePasswordDto.newPassword);
+    return { message: 'Contraseña cambiada exitosamente' };
   }
 }

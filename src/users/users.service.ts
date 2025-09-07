@@ -50,6 +50,8 @@ export class UsersService {
       empresa: savedUser.empresa,
       nombre: savedUser.nombre,
       rol: savedUser.rol,
+      ultimoCambioPassword: savedUser.ultimoCambioPassword,
+      ultimoLogin: savedUser.ultimoLogin,
     };
   }
 
@@ -65,6 +67,8 @@ export class UsersService {
       empresa: user.empresa,
       nombre: user.nombre,
       rol: user.rol,
+      ultimoCambioPassword: user.ultimoCambioPassword,
+      ultimoLogin: user.ultimoLogin,
     }));
   }
 
@@ -85,6 +89,8 @@ export class UsersService {
       empresa: user.empresa,
       nombre: user.nombre,
       rol: user.rol,
+      ultimoCambioPassword: user.ultimoCambioPassword,
+      ultimoLogin: user.ultimoLogin,
     };
   }
 
@@ -129,6 +135,8 @@ export class UsersService {
       empresa: updatedUser!.empresa,
       nombre: updatedUser!.nombre,
       rol: updatedUser!.rol,
+      ultimoCambioPassword: updatedUser!.ultimoCambioPassword,
+      ultimoLogin: updatedUser!.ultimoLogin,
     };
   }
 
@@ -180,6 +188,8 @@ export class UsersService {
       empresa: updatedUser!.empresa,
       nombre: updatedUser!.nombre,
       rol: updatedUser!.rol,
+      ultimoCambioPassword: updatedUser!.ultimoCambioPassword,
+      ultimoLogin: updatedUser!.ultimoLogin,
     };
   }
 
@@ -228,6 +238,8 @@ export class UsersService {
       empresa: updatedUser!.empresa,
       nombre: updatedUser!.nombre,
       rol: updatedUser!.rol,
+      ultimoCambioPassword: updatedUser!.ultimoCambioPassword,
+      ultimoLogin: updatedUser!.ultimoLogin,
     };
   }
 
@@ -248,5 +260,20 @@ export class UsersService {
   private async hashPassword(plainPassword: string): Promise<string> {
     const saltRounds = 10;
     return await bcrypt.hash(plainPassword, saltRounds);
+  }
+
+  async findById(id: number): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async updateLastLogin(userId: number): Promise<void> {
+    await this.userRepository.update(userId, { ultimoLogin: new Date() });
+  }
+
+  async updatePassword(userId: number, hashedPassword: string): Promise<void> {
+    await this.userRepository.update(userId, { 
+      contrasenia: hashedPassword,
+      ultimoCambioPassword: new Date()
+    });
   }
 }
