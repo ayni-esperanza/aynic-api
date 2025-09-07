@@ -107,6 +107,8 @@ async function bootstrap() {
       'API para gestión de líneas de vida y usuarios en el sistema Ayni.',
     )
     .setVersion('1.0')
+    .addServer('https://linea.aynisac.com/v1', 'Servidor de Producción')
+    .addServer('http://localhost:3000', 'Servidor Local')
     .addBearerAuth()
     .addTag('auth', 'Autenticación y autorización')
     .addTag('users', 'Gestión de usuarios')
