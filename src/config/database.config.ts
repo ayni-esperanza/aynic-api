@@ -63,10 +63,7 @@ export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions =
     // Configuración para PRODUCCIÓN
     return {
       ...baseConfig,
-      synchronize: false, // para producción
-      migrations: ['dist/migrations/*.js'],
-      migrationsRun: true, // Ejecuta migraciones automáticamente
-      migrationsTableName: 'migrations',
+      synchronize: true, // Usar synchronize en lugar de migraciones
       logging: ['error', 'warn'], // Logging limitado para producción
     };
   } else {

@@ -41,7 +41,5 @@ export default new DataSource({
     RecordRelationship,
     UserSession,
   ],
-  migrations: ['src/migrations/*.ts'],
-  migrationsTableName: 'migrations',
   ssl: enableSSL,
 });
