@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -244,13 +245,20 @@ export class UsersService {
   }
 
   async remove(id: number): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    try {
+      const user = await this.userRepository.findOne({ where: { id } });
 
-    if (!user) {
-      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+      if (!user) {
+        throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+      }
+
+      await this.userRepository.remove(user);
+    } catch (error) {
+      if (error.code === '23503') {
+        throw new BadRequestException('No se puede eliminar el usuario porque tiene órdenes de compra asociadas. Primero elimine las órdenes de compra relacionadas.');
+      }
+      throw error;
     }
-
-    await this.userRepository.remove(user);
   }
 
   async findByUsername(username: string): Promise<User | null> {

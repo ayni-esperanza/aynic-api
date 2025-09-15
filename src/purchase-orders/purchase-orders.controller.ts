@@ -9,6 +9,8 @@ import {
   UseGuards,
   Request,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
@@ -65,7 +67,8 @@ export class PurchaseOrdersController {
 
   @Delete(':id')
   @Roles('ADMINISTRADOR')
-  remove(@Param('id') id: string) {
-    return this.purchaseOrdersService.remove(+id);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: string) {
+    await this.purchaseOrdersService.remove(+id);
   }
 }
