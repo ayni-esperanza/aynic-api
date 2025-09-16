@@ -65,6 +65,9 @@ export class Record {
   @Column({ type: 'date', nullable: true })
   fecha_caducidad: Date;
 
+  @Column({ type: 'date', nullable: true })
+  fecha_mantenimiento: Date;
+
   @Column({ nullable: true })
   estado_actual: string;
 }

@@ -177,6 +177,11 @@ export class CreateRecordDto {
   @IsAfterInstallationDate()
   fecha_caducidad?: String;
 
+  @ApiProperty({ description: 'Fecha de mantenimiento', required: false })
+  @IsOptional()
+  @IsDateString({}, { message: 'fecha_mantenimiento debe ser una fecha válida (YYYY-MM-DD o ISO)' })
+  fecha_mantenimiento?: string;
+
   @ApiProperty({
     description: 'Estado actual del registro',
     enum: ['ACTIVO', 'POR_VENCER', 'VENCIDO', 'INACTIVO', 'MANTENIMIENTO'],
