@@ -190,6 +190,7 @@ export class RecordsService {
       order: { [sortBy]: sortOrder },
       skip: (page - 1) * limit,
       take: limit,
+      relations: ['purchaseOrder'],
     };
 
     const [records, total] = await this.recordRepository.findAndCount(options);
@@ -297,6 +298,7 @@ export class RecordsService {
       order: { [sortBy]: sortOrder },
       skip: (page - 1) * limit,
       take: limit,
+      relations: ['purchaseOrder'],
     };
 
     const [records, total] = await this.recordRepository.findAndCount(options);
@@ -326,10 +328,15 @@ export class RecordsService {
   }
 
   async findOne(id: number): Promise<Record> {
-    const record = await this.recordRepository.findOne({ where: { id } });
+    const record = await this.recordRepository.findOne({
+      where: { id },
+      relations: ['purchaseOrder'],
+    });
+
     if (!record) {
       throw new NotFoundException(`Registro con ID ${id} no encontrado`);
     }
+
     return record;
   }
 
