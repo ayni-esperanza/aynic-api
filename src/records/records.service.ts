@@ -23,6 +23,7 @@ import { Record } from './entities/record.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
+import { PurchaseOrdersService } from '../purchase-orders/purchase-orders.service';
 import {
   PaginatedResponse,
   PaginationHelper,
@@ -35,6 +36,7 @@ export class RecordsService {
     private readonly recordRepository: Repository<Record>,
     private readonly movementTrackingService: MovementTrackingService,
     private readonly empresaPermissionsService: EmpresaPermissionsService,
+    private readonly purchaseOrdersService: PurchaseOrdersService,
   ) {}
 
   async create(
@@ -99,7 +101,16 @@ export class RecordsService {
       estado_actual: createRecordDto.estado_actual || 'ACTIVO',
     });
 
-    const savedRecord = await this.recordRepository.save(record);
+    let savedRecord = await this.recordRepository.save(record);
+
+    // Vincular orden de compra si viene número
+    if (createRecordDto.purchase_order_num) {
+      savedRecord = await this.purchaseOrdersService.linkToRecord(
+        savedRecord.id,
+        createRecordDto.purchase_order_num,
+        createRecordDto.purchase_order_termino_referencias,
+      );
+    }
 
     if (trackingContext) {
       await this.movementTrackingService.trackRecordCreation(
@@ -438,6 +449,19 @@ export class RecordsService {
       ...updateRecordDto,
       fecha_caducidad: nuevaFechaCaducidad,
     });
+
+    // Vincular/desvincular orden de compra si viene info
+    if (updateRecordDto.purchase_order_num !== undefined) {
+      if (updateRecordDto.purchase_order_num) {
+        await this.purchaseOrdersService.linkToRecord(
+          id,
+          updateRecordDto.purchase_order_num,
+          updateRecordDto.purchase_order_termino_referencias,
+        );
+      } else {
+        await this.purchaseOrdersService.unlinkFromRecord(id);
+      }
+    }
 
     const updatedRecord = await this.findOne(id);
 

@@ -1,47 +1,36 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PurchaseOrder, PurchaseOrderStatus, PurchaseOrderType } from './entities/purchase-order.entity';
+import { PurchaseOrder } from './entities/purchase-order.entity';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { User } from '../users/entities/user.entity';
+import { Record } from '../records/entities/record.entity';
 
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
     @InjectRepository(PurchaseOrder)
     private purchaseOrderRepository: Repository<PurchaseOrder>,
+    @InjectRepository(Record)
+    private recordRepository: Repository<Record>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createPurchaseOrderDto: CreatePurchaseOrderDto, userId: number): Promise<PurchaseOrder> {
-    const solicitante = await this.userRepository.findOne({ where: { id: userId } });
-    if (!solicitante) {
-      throw new NotFoundException('Usuario solicitante no encontrado');
-    }
-
+  async create(createPurchaseOrderDto: CreatePurchaseOrderDto): Promise<PurchaseOrder> {
     const purchaseOrder = this.purchaseOrderRepository.create({
       ...createPurchaseOrderDto,
-      solicitante,
-      estado: PurchaseOrderStatus.PENDING,
     });
-
     return this.purchaseOrderRepository.save(purchaseOrder);
   }
 
   async findAll(): Promise<PurchaseOrder[]> {
-    return this.purchaseOrderRepository.find({
-      relations: ['solicitante', 'aprobador'],
-      order: { fecha_creacion: 'DESC' },
-    });
+    return this.purchaseOrderRepository.find({ order: { created_at: 'DESC' } });
   }
 
   async findOne(id: number): Promise<PurchaseOrder> {
-    const purchaseOrder = await this.purchaseOrderRepository.findOne({
-      where: { id },
-      relations: ['solicitante', 'aprobador'],
-    });
+    const purchaseOrder = await this.purchaseOrderRepository.findOne({ where: { id } });
 
     if (!purchaseOrder) {
       throw new NotFoundException('Orden de compra no encontrada');
@@ -50,47 +39,40 @@ export class PurchaseOrdersService {
     return purchaseOrder;
   }
 
-  async update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto, userId: number): Promise<PurchaseOrder> {
+  async update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto): Promise<PurchaseOrder> {
     const purchaseOrder = await this.findOne(id);
-    
-    // Si se está aprobando, verificar que el usuario sea aprobador
-    if (updatePurchaseOrderDto.estado === PurchaseOrderStatus.APPROVED) {
-      const aprobador = await this.userRepository.findOne({ where: { id: userId } });
-      if (!aprobador) {
-        throw new NotFoundException('Usuario aprobador no encontrado');
-      }
-      
-      updatePurchaseOrderDto.aprobador = aprobador;
-      updatePurchaseOrderDto.fecha_aprobacion = new Date().toISOString();
-    }
-
     Object.assign(purchaseOrder, updatePurchaseOrderDto);
     return this.purchaseOrderRepository.save(purchaseOrder);
   }
 
   async remove(id: number): Promise<void> {
     const purchaseOrder = await this.findOne(id);
-    
-    if (purchaseOrder.estado !== PurchaseOrderStatus.PENDING) {
-      throw new BadRequestException('Solo se pueden eliminar órdenes pendientes');
-    }
-
     await this.purchaseOrderRepository.remove(purchaseOrder);
   }
 
-  async findByStatus(status: PurchaseOrderStatus): Promise<PurchaseOrder[]> {
-    return this.purchaseOrderRepository.find({
-      where: { estado: status },
-      relations: ['solicitante', 'aprobador'],
-      order: { fecha_creacion: 'DESC' },
-    });
+  async linkToRecord(recordId: number, numero: string, termino_referencias?: string): Promise<Record> {
+    let po = await this.purchaseOrderRepository.findOne({ where: { numero } });
+    if (!po) {
+      po = this.purchaseOrderRepository.create({ numero, termino_referencias });
+    } else if (termino_referencias !== undefined) {
+      po.termino_referencias = termino_referencias;
+    }
+    po = await this.purchaseOrderRepository.save(po);
+
+    const record = await this.recordRepository.findOne({ where: { id: recordId } });
+    if (!record) {
+      throw new NotFoundException('Registro no encontrado');
+    }
+    (record as any).purchaseOrder = po;
+    return await this.recordRepository.save(record);
   }
 
-  async findByType(type: PurchaseOrderType): Promise<PurchaseOrder[]> {
-    return this.purchaseOrderRepository.find({
-      where: { tipo: type },
-      relations: ['solicitante', 'aprobador'],
-      order: { fecha_creacion: 'DESC' },
-    });
+  async unlinkFromRecord(recordId: number): Promise<Record> {
+    const record = await this.recordRepository.findOne({ where: { id: recordId } });
+    if (!record) {
+      throw new NotFoundException('Registro no encontrado');
+    }
+    (record as any).purchaseOrder = null;
+    return await this.recordRepository.save(record);
   }
 }

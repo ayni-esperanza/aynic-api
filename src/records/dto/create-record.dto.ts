@@ -191,4 +191,23 @@ export class CreateRecordDto {
   @IsString()
   @IsValidRecordStatus()
   estado_actual?: string;
+
+  @ApiPropertyOptional({
+    description: 'Número de orden de compra asociada a la línea de vida',
+    maxLength: 50,
+    example: '30484575478458',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  purchase_order_num?: string;
+
+  @ApiPropertyOptional({
+    description: 'Término y referencias de la orden de compra',
+    maxLength: 1000,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  purchase_order_termino_referencias?: string;
 }

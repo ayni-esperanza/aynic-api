@@ -1,64 +1,25 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-
-export enum PurchaseOrderStatus {
-  PENDING = 'pendiente',
-  APPROVED = 'aprobada',
-  REJECTED = 'rechazada',
-  COMPLETED = 'completada',
-  CANCELLED = 'cancelada'
-}
-
-export enum PurchaseOrderType {
-  LINEA_VIDA = 'linea_vida',
-  EQUIPOS = 'equipos',
-  ACCESORIOS = 'accesorios',
-  SERVICIOS = 'servicios'
-}
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Record } from '../../records/entities/record.entity';
 
 @Entity('ordenes_compra')
 export class PurchaseOrder {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
-  codigo: string;
+  // Número de orden de compra (único)
+  @Column({ type: 'varchar', length: 50, unique: true })
+  numero: string;
 
-  @Column({ type: 'text' })
-  descripcion: string;
+  // Término y referencias asociadas a la OC
+  @Column({ type: 'varchar', length: 1000, nullable: true })
+  termino_referencias?: string | null;
 
-  @Column({ type: 'enum', enum: PurchaseOrderType, default: PurchaseOrderType.LINEA_VIDA })
-  tipo: PurchaseOrderType;
-
-  @Column({ type: 'enum', enum: PurchaseOrderStatus, default: PurchaseOrderStatus.PENDING })
-  estado: PurchaseOrderStatus;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  monto_total: number;
-
-  @Column({ type: 'text', nullable: true })
-  proveedor: string;
-
-  @Column({ type: 'text', nullable: true })
-  observaciones: string;
-
-  @Column({ type: 'date', nullable: true })
-  fecha_requerida: Date;
-
-  @Column({ type: 'date', nullable: true })
-  fecha_aprobacion: Date;
-
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'solicitante_id' })
-  solicitante: User;
-
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'aprobador_id' })
-  aprobador: User;
+  @OneToMany(() => Record, (record) => record.purchaseOrder)
+  records?: Record[];
 
   @CreateDateColumn()
-  fecha_creacion: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  fecha_actualizacion: Date;
+  updated_at: Date;
 }

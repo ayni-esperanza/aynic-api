@@ -1,28 +1,12 @@
-import { IsString, IsNumber, IsOptional, IsDateString, IsEnum } from 'class-validator';
-import { PurchaseOrderType, PurchaseOrderStatus } from '../entities/purchase-order.entity';
+import { IsString, IsOptional, MaxLength } from 'class-validator';
 
 export class CreatePurchaseOrderDto {
   @IsString()
-  codigo: string;
-
-  @IsString()
-  descripcion: string;
-
-  @IsEnum(PurchaseOrderType)
-  tipo: PurchaseOrderType;
-
-  @IsNumber()
-  monto_total: number;
+  @MaxLength(50)
+  numero: string;
 
   @IsOptional()
   @IsString()
-  proveedor?: string;
-
-  @IsOptional()
-  @IsString()
-  observaciones?: string;
-
-  @IsOptional()
-  @IsDateString()
-  fecha_requerida?: string;
+  @MaxLength(1000)
+  termino_referencias?: string;
 }

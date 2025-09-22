@@ -11,6 +11,7 @@ import { AuthorizationCode } from '../authorization-codes/entities/authorization
 import { Maintenance } from '../maintenance/entities/maintenance.entity';
 import { RecordRelationship } from '../record-relationships/entities/record-relationship.entity';
 import { UserSession } from '../auth/entities/user-session.entity';
+import { PurchaseOrder } from '../purchase-orders/entities/purchase-order.entity';
 
 export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions => {
   const host = config.get<string>('DB_HOST') ?? 'localhost';
@@ -54,6 +55,7 @@ export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions =
       Maintenance,
       RecordRelationship,
       UserSession,
+      PurchaseOrder,
     ],
     autoLoadEntities: true,
     ssl: enableSSL,
