@@ -363,36 +363,43 @@ export class RecordsService {
   ): Promise<Record> {
     const record = await this.findOne(id);
 
-    if (updateRecordDto.codigo && updateRecordDto.codigo !== record.codigo) {
+    const {
+      purchase_order_num,
+      purchase_order_termino_referencias,
+      ...recordUpdateData
+    } = updateRecordDto;
+
+    // Validaciones existentes...
+    if (recordUpdateData.codigo && recordUpdateData.codigo !== record.codigo) {
       const existingRecord = await this.recordRepository.findOne({
-        where: { codigo: updateRecordDto.codigo },
+        where: { codigo: recordUpdateData.codigo },
       });
       if (existingRecord) {
         throw new ConflictException(
-          `Ya existe un registro con el código: ${updateRecordDto.codigo}`,
+          `Ya existe un registro con el código: ${recordUpdateData.codigo}`,
         );
       }
     }
 
     // Verificar unicidad del código de placa al actualizar
     if (
-      updateRecordDto.codigo_placa &&
-      updateRecordDto.codigo_placa !== record.codigo_placa
+      recordUpdateData.codigo_placa &&
+      recordUpdateData.codigo_placa !== record.codigo_placa
     ) {
       const existingPlateCode = await this.recordRepository.findOne({
-        where: { codigo_placa: updateRecordDto.codigo_placa },
+        where: { codigo_placa: recordUpdateData.codigo_placa },
       });
       if (existingPlateCode) {
         throw new ConflictException(
-          `Ya existe un registro con el código de placa: ${updateRecordDto.codigo_placa}`,
+          `Ya existe un registro con el código de placa: ${recordUpdateData.codigo_placa}`,
         );
       }
     }
 
     const fechaInstalacion =
-      updateRecordDto.fecha_instalacion || record.fecha_instalacion;
+      recordUpdateData.fecha_instalacion || record.fecha_instalacion;
     const fechaCaducidad =
-      updateRecordDto.fecha_caducidad || record.fecha_caducidad;
+      recordUpdateData.fecha_caducidad || record.fecha_caducidad;
 
     if (fechaInstalacion && fechaCaducidad) {
       const instalacion = new Date(String(fechaInstalacion));
@@ -404,17 +411,17 @@ export class RecordsService {
       }
     }
 
-    let nuevaFechaCaducidad = updateRecordDto.fecha_caducidad
-      ? new Date(String(updateRecordDto.fecha_caducidad))
+    let nuevaFechaCaducidad = recordUpdateData.fecha_caducidad
+      ? new Date(String(recordUpdateData.fecha_caducidad))
       : record.fecha_caducidad;
 
     if (
       fechaInstalacion &&
-      (updateRecordDto.fv_anios !== undefined ||
-        updateRecordDto.fv_meses !== undefined)
+      (recordUpdateData.fv_anios !== undefined ||
+        recordUpdateData.fv_meses !== undefined)
     ) {
-      const anios = updateRecordDto.fv_anios ?? record.fv_anios ?? 0;
-      const meses = updateRecordDto.fv_meses ?? record.fv_meses ?? 0;
+      const anios = recordUpdateData.fv_anios ?? record.fv_anios ?? 0;
+      const meses = recordUpdateData.fv_meses ?? record.fv_meses ?? 0;
 
       if (anios > 0 || meses > 0) {
         nuevaFechaCaducidad = new Date(fechaInstalacion);
@@ -446,17 +453,16 @@ export class RecordsService {
     };
 
     await this.recordRepository.update(id, {
-      ...updateRecordDto,
+      ...recordUpdateData, // Ya no incluye purchase_order_num ni purchase_order_termino_referencias
       fecha_caducidad: nuevaFechaCaducidad,
     });
 
-    // Vincular/desvincular orden de compra si viene info
-    if (updateRecordDto.purchase_order_num !== undefined) {
-      if (updateRecordDto.purchase_order_num) {
+    if (purchase_order_num !== undefined) {
+      if (purchase_order_num) {
         await this.purchaseOrdersService.linkToRecord(
           id,
-          updateRecordDto.purchase_order_num,
-          updateRecordDto.purchase_order_termino_referencias,
+          purchase_order_num,
+          purchase_order_termino_referencias,
         );
       } else {
         await this.purchaseOrdersService.unlinkFromRecord(id);
@@ -577,7 +583,8 @@ export class RecordsService {
       ubicacion: string;
     }>
   > {
-    let whereConditions: FindOptionsWhere<Record> | FindOptionsWhere<Record>[] = {};
+    let whereConditions: FindOptionsWhere<Record> | FindOptionsWhere<Record>[] =
+      {};
 
     if (searchTerm) {
       // Buscar en código, cliente o ubicación
