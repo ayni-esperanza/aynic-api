@@ -37,8 +37,6 @@ export class PurchaseOrdersController {
     return this.purchaseOrdersService.findAll();
   }
 
-  // Rutas legacy de estado y tipo eliminadas
-
   @Get(':id')
   @Roles('ADMINISTRADOR', 'USUARIO')
   findOne(@Param('id') id: string) {
@@ -59,5 +57,11 @@ export class PurchaseOrdersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
     await this.purchaseOrdersService.remove(+id);
+  }
+
+  @Get(':id/can-delete')
+  @Roles('ADMINISTRADOR')
+  canDelete(@Param('id') id: string) {
+    return this.purchaseOrdersService.canDelete(+id);
   }
 }

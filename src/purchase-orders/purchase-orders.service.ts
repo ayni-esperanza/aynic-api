@@ -18,7 +18,9 @@ export class PurchaseOrdersService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(createPurchaseOrderDto: CreatePurchaseOrderDto): Promise<PurchaseOrder> {
+  async create(
+    createPurchaseOrderDto: CreatePurchaseOrderDto,
+  ): Promise<PurchaseOrder> {
     const purchaseOrder = this.purchaseOrderRepository.create({
       ...createPurchaseOrderDto,
     });
@@ -30,7 +32,9 @@ export class PurchaseOrdersService {
   }
 
   async findOne(id: number): Promise<PurchaseOrder> {
-    const purchaseOrder = await this.purchaseOrderRepository.findOne({ where: { id } });
+    const purchaseOrder = await this.purchaseOrderRepository.findOne({
+      where: { id },
+    });
 
     if (!purchaseOrder) {
       throw new NotFoundException('Orden de compra no encontrada');
@@ -39,7 +43,10 @@ export class PurchaseOrdersService {
     return purchaseOrder;
   }
 
-  async update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto): Promise<PurchaseOrder> {
+  async update(
+    id: number,
+    updatePurchaseOrderDto: UpdatePurchaseOrderDto,
+  ): Promise<PurchaseOrder> {
     const purchaseOrder = await this.findOne(id);
     Object.assign(purchaseOrder, updatePurchaseOrderDto);
     return this.purchaseOrderRepository.save(purchaseOrder);
@@ -50,7 +57,20 @@ export class PurchaseOrdersService {
     await this.purchaseOrderRepository.remove(purchaseOrder);
   }
 
-  async linkToRecord(recordId: number, numero: string, termino_referencias?: string): Promise<Record> {
+  async canDelete(id: number): Promise<{ canDelete: boolean }> {
+    // Verificar si existen registros que referencian esta orden de compra
+    const referencedRecords = await this.recordRepository.count({
+      where: { purchaseOrder: { id } },
+    });
+
+    return { canDelete: referencedRecords === 0 };
+  }
+
+  async linkToRecord(
+    recordId: number,
+    numero: string,
+    termino_referencias?: string,
+  ): Promise<Record> {
     let po = await this.purchaseOrderRepository.findOne({ where: { numero } });
     if (!po) {
       po = this.purchaseOrderRepository.create({ numero, termino_referencias });
@@ -59,7 +79,9 @@ export class PurchaseOrdersService {
     }
     po = await this.purchaseOrderRepository.save(po);
 
-    const record = await this.recordRepository.findOne({ where: { id: recordId } });
+    const record = await this.recordRepository.findOne({
+      where: { id: recordId },
+    });
     if (!record) {
       throw new NotFoundException('Registro no encontrado');
     }
@@ -68,7 +90,9 @@ export class PurchaseOrdersService {
   }
 
   async unlinkFromRecord(recordId: number): Promise<Record> {
-    const record = await this.recordRepository.findOne({ where: { id: recordId } });
+    const record = await this.recordRepository.findOne({
+      where: { id: recordId },
+    });
     if (!record) {
       throw new NotFoundException('Registro no encontrado');
     }
