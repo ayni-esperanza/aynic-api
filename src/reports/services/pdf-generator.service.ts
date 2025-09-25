@@ -158,13 +158,14 @@ export class PdfGeneratorService {
       if (y + cardHeight > doc.page.height - 100) {
         doc.addPage();
         currentY = 50;
-        const newRow = Math.floor(index / cardsPerRow);
-        const adjustedY =
+
+        // Recalcular Y para la nueva página
+        const newY =
           50 +
-          (newRow %
+          (index %
             Math.floor((doc.page.height - 150) / (cardHeight + cardMargin))) *
             (cardHeight + cardMargin);
-        this.drawCard(doc, record, x, adjustedY, cardWidth, cardHeight, colors);
+        this.drawCard(doc, record, x, newY, cardWidth, cardHeight, colors);
       } else {
         this.drawCard(doc, record, x, y, cardWidth, cardHeight, colors);
       }
@@ -283,40 +284,62 @@ export class PdfGeneratorService {
   }
 
   /**
-   * Genera el pie de página
+   * Genera el pie de página correctamente
    */
   private generateFooter(
     doc: PDFKit.PDFDocument,
     metadata: ReportMetadata,
     colors: any,
   ): void {
-    // Ir a la última página
+    // Obtener información del rango de páginas
     const pages = doc.bufferedPageRange();
+    this.logger.debug(
+      `Generando footer para ${pages.count} páginas (rango: ${pages.start} - ${pages.start + pages.count - 1})`,
+    );
+
+    // Iterar correctamente sobre las páginas
     for (let i = 0; i < pages.count; i++) {
-      doc.switchToPage(i);
+      const pageNumber = pages.start + i; // Número real de la página
 
-      // Línea separadora
-      doc
-        .strokeColor(colors.border)
-        .lineWidth(0.5)
-        .moveTo(50, doc.page.height - 60)
-        .lineTo(550, doc.page.height - 60)
-        .stroke();
+      try {
+        // Cambiar a la página usando el número correcto
+        doc.switchToPage(i); // switchToPage usa índice 0-based relativo
 
-      // Información del pie
-      doc
-        .fontSize(8)
-        .fillColor(colors.secondary)
-        .text(
-          `Sistema Ayni - Reporte generado el ${metadata.fecha_generacion.toLocaleString('es-PE')}`,
-          50,
-          doc.page.height - 45,
-          { align: 'left' },
-        )
-        .text(`Página ${i + 1} de ${pages.count}`, 50, doc.page.height - 45, {
-          align: 'right',
-          width: 500,
-        });
+        // Línea separadora
+        doc
+          .strokeColor(colors.border)
+          .lineWidth(0.5)
+          .moveTo(50, doc.page.height - 60)
+          .lineTo(550, doc.page.height - 60)
+          .stroke();
+
+        // Información del pie
+        doc
+          .fontSize(8)
+          .fillColor(colors.secondary)
+          .text(
+            `Sistema Ayni - Reporte generado el ${metadata.fecha_generacion.toLocaleString('es-PE')}`,
+            50,
+            doc.page.height - 45,
+            { align: 'left' },
+          )
+          .text(
+            `Página ${pageNumber} de ${pages.start + pages.count - 1}`,
+            50,
+            doc.page.height - 45,
+            {
+              align: 'right',
+              width: 500,
+            },
+          );
+      } catch (error) {
+        this.logger.error(
+          `Error procesando página ${i} (${pageNumber}):`,
+          error,
+        );
+        // Continuar con las demás páginas
+        continue;
+      }
     }
   }
 
