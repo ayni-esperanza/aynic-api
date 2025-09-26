@@ -317,49 +317,37 @@ export class PdfGeneratorService {
       `Generando footer para ${pages.count} páginas (rango: ${pages.start} - ${pages.start + pages.count - 1})`,
     );
 
-    // Iterar correctamente sobre las páginas
-    for (let i = 0; i < pages.count; i++) {
-      const pageNumber = pages.start + i; // Número real de la página
+    // Para documentos ya creados, aplicar footer solo a la página actual
+    try {
+      // Línea separadora
+      doc
+        .strokeColor(colors.border)
+        .lineWidth(0.5)
+        .moveTo(50, doc.page.height - 60)
+        .lineTo(550, doc.page.height - 60)
+        .stroke();
 
-      try {
-        // Cambiar a la página usando el número correcto
-        doc.switchToPage(i); // switchToPage usa índice 0-based relativo
-
-        // Línea separadora
-        doc
-          .strokeColor(colors.border)
-          .lineWidth(0.5)
-          .moveTo(50, doc.page.height - 60)
-          .lineTo(550, doc.page.height - 60)
-          .stroke();
-
-        // Información del pie
-        doc
-          .fontSize(8)
-          .fillColor(colors.secondary)
-          .text(
-            `Sistema Ayni - Reporte generado el ${metadata.fecha_generacion.toLocaleString('es-PE')}`,
-            50,
-            doc.page.height - 45,
-            { align: 'left' },
-          )
-          .text(
-            `Página ${pageNumber} de ${pages.start + pages.count - 1}`,
-            50,
-            doc.page.height - 45,
-            {
-              align: 'right',
-              width: 500,
-            },
-          );
-      } catch (error) {
-        this.logger.error(
-          `Error procesando página ${i} (${pageNumber}):`,
-          error,
+      // Información del pie
+      doc
+        .fontSize(8)
+        .fillColor(colors.secondary)
+        .text(
+          `Sistema Ayni - Reporte generado el ${metadata.fecha_generacion.toLocaleString('es-PE')}`,
+          50,
+          doc.page.height - 45,
+          { align: 'left' },
+        )
+        .text(
+          `Página ${pages.start + pages.count - 1} de ${pages.start + pages.count - 1}`,
+          50,
+          doc.page.height - 45,
+          {
+            align: 'right',
+            width: 500,
+          },
         );
-        // Continuar con las demás páginas
-        continue;
-      }
+    } catch (error) {
+      this.logger.error(`Error procesando footer:`, error);
     }
   }
 
