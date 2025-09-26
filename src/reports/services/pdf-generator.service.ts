@@ -149,54 +149,47 @@ export class PdfGeneratorService {
     const bottomMargin = 100;
 
     // Calcular cuántas tarjetas caben por página
+    const rowHeight = cardHeight + cardMargin;
     const firstPageAvailableHeight = doc.page.height - startY - bottomMargin;
     const newPageAvailableHeight =
       doc.page.height - newPageStartY - bottomMargin;
 
-    const rowHeight = cardHeight + cardMargin;
-    const cardsPerFirstPage =
-      Math.floor(firstPageAvailableHeight / rowHeight) * cardsPerRow;
-    const cardsPerNewPage =
-      Math.floor(newPageAvailableHeight / rowHeight) * cardsPerRow;
+    const rowsPerFirstPage = Math.floor(firstPageAvailableHeight / rowHeight);
+    const rowsPerNewPage = Math.floor(newPageAvailableHeight / rowHeight);
+    const cardsPerFirstPage = rowsPerFirstPage * cardsPerRow;
+    const cardsPerNewPage = rowsPerNewPage * cardsPerRow;
 
-    records.forEach((record, index) => {
-      let pageIndex = 0;
-      let cardIndexInPage = index;
+    let currentPageStartIndex = 0;
+    let isFirstPage = true;
 
-      // Determinar en qué página estamos y el índice dentro de esa página
-      if (index < cardsPerFirstPage) {
-        // Primera página
-        pageIndex = 0;
-        cardIndexInPage = index;
-      } else {
-        // Páginas subsecuentes
-        const remainingCards = index - cardsPerFirstPage;
-        pageIndex = Math.floor(remainingCards / cardsPerNewPage) + 1;
-        cardIndexInPage = remainingCards % cardsPerNewPage;
-      }
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
 
-      // Agregar nueva página si es necesaria
-      const currentPageCount = doc.bufferedPageRange().count;
-      while (pageIndex >= currentPageCount) {
+      // Determinar si necesitamos nueva página
+      const cardsInCurrentPage = isFirstPage
+        ? cardsPerFirstPage
+        : cardsPerNewPage;
+      const cardIndexInCurrentPage = i - currentPageStartIndex;
+
+      if (cardIndexInCurrentPage >= cardsInCurrentPage) {
+        // Necesitamos nueva página
         doc.addPage();
+        isFirstPage = false;
+        currentPageStartIndex = i;
       }
 
-      // Cambiar a la página correcta si no estamos en ella
-      if (pageIndex !== currentPageCount - 1) {
-        doc.switchToPage(pageIndex);
-      }
-
-      // Calcular posición dentro de la página actual
-      const col = cardIndexInPage % cardsPerRow;
-      const row = Math.floor(cardIndexInPage / cardsPerRow);
+      // Calcular posición en la página actual
+      const indexInPage = i - currentPageStartIndex;
+      const col = indexInPage % cardsPerRow;
+      const row = Math.floor(indexInPage / cardsPerRow);
 
       const x = 50 + col * (cardWidth + cardMargin);
-      const baseY = pageIndex === 0 ? startY : newPageStartY;
+      const baseY = isFirstPage ? startY : newPageStartY;
       const y = baseY + row * rowHeight;
 
       // Dibujar la tarjeta
       this.drawCard(doc, record, x, y, cardWidth, cardHeight, colors);
-    });
+    }
   }
 
   /**
