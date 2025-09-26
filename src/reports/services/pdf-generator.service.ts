@@ -140,35 +140,62 @@ export class PdfGeneratorService {
     records: ExpiredRecordCardData[],
     colors: any,
   ): void {
-    let currentY = 240;
     const cardWidth = 240;
     const cardHeight = 120;
     const cardsPerRow = 2;
     const cardMargin = 20;
+    const startY = 240; // Y inicial en primera página
+    const newPageStartY = 50; // Y inicial en páginas nuevas
+    const bottomMargin = 100;
+
+    // Calcular cuántas tarjetas caben por página
+    const firstPageAvailableHeight = doc.page.height - startY - bottomMargin;
+    const newPageAvailableHeight =
+      doc.page.height - newPageStartY - bottomMargin;
+
+    const rowHeight = cardHeight + cardMargin;
+    const cardsPerFirstPage =
+      Math.floor(firstPageAvailableHeight / rowHeight) * cardsPerRow;
+    const cardsPerNewPage =
+      Math.floor(newPageAvailableHeight / rowHeight) * cardsPerRow;
 
     records.forEach((record, index) => {
-      // Calcular posición de la tarjeta
-      const col = index % cardsPerRow;
-      const row = Math.floor(index / cardsPerRow);
+      let pageIndex = 0;
+      let cardIndexInPage = index;
+
+      // Determinar en qué página estamos y el índice dentro de esa página
+      if (index < cardsPerFirstPage) {
+        // Primera página
+        pageIndex = 0;
+        cardIndexInPage = index;
+      } else {
+        // Páginas subsecuentes
+        const remainingCards = index - cardsPerFirstPage;
+        pageIndex = Math.floor(remainingCards / cardsPerNewPage) + 1;
+        cardIndexInPage = remainingCards % cardsPerNewPage;
+      }
+
+      // Agregar nueva página si es necesaria
+      const currentPageCount = doc.bufferedPageRange().count;
+      while (pageIndex >= currentPageCount) {
+        doc.addPage();
+      }
+
+      // Cambiar a la página correcta si no estamos en ella
+      if (pageIndex !== currentPageCount - 1) {
+        doc.switchToPage(pageIndex);
+      }
+
+      // Calcular posición dentro de la página actual
+      const col = cardIndexInPage % cardsPerRow;
+      const row = Math.floor(cardIndexInPage / cardsPerRow);
 
       const x = 50 + col * (cardWidth + cardMargin);
-      const y = currentY + row * (cardHeight + cardMargin);
+      const baseY = pageIndex === 0 ? startY : newPageStartY;
+      const y = baseY + row * rowHeight;
 
-      // Verificar si necesita nueva página
-      if (y + cardHeight > doc.page.height - 100) {
-        doc.addPage();
-        currentY = 50;
-
-        // Recalcular Y para la nueva página
-        const newY =
-          50 +
-          (index %
-            Math.floor((doc.page.height - 150) / (cardHeight + cardMargin))) *
-            (cardHeight + cardMargin);
-        this.drawCard(doc, record, x, newY, cardWidth, cardHeight, colors);
-      } else {
-        this.drawCard(doc, record, x, y, cardWidth, cardHeight, colors);
-      }
+      // Dibujar la tarjeta
+      this.drawCard(doc, record, x, y, cardWidth, cardHeight, colors);
     });
   }
 
