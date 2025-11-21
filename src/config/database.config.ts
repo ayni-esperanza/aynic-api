@@ -18,20 +18,6 @@ export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions =
   const port = +(config.get<number>('DB_PORT') ?? 5432);
   const isProduction = config.get('NODE_ENV') === 'production';
   
-  // LOG TEMPORAL para debug
-  console.log('🔍 === DEBUG VARIABLES DE ENTORNO ===');
-  console.log(' NODE_ENV:', config.get('NODE_ENV'));
-  console.log(' DB_HOST:', config.get('DB_HOST'));
-  console.log(' DB_PORT:', config.get('DB_PORT'));
-  console.log(' DB_USERNAME:', config.get('DB_USERNAME'));
-  console.log(' DB_DATABASE:', config.get('DB_DATABASE'));
-  console.log(' DB_SSL_ENABLED:', config.get('DB_SSL_ENABLED'));
-  console.log(' JWT_SECRET:', config.get('JWT_SECRET') ? '✅ SET' : '❌ NOT SET');
-  console.log(' R2_BUCKET_NAME:', config.get('R2_BUCKET_NAME'));
-  console.log(' isProduction:', isProduction);
-  console.log('🔍 synchronize:', isProduction ? false : true);
-  console.log('🔍 === FIN DEBUG ===');
-  
   // Configuración SSL simplificada usando DB_SSL_ENABLED
   const sslEnabled = config.get('DB_SSL_ENABLED') === 'true';
   const enableSSL = sslEnabled ? { rejectUnauthorized: false } : false;
