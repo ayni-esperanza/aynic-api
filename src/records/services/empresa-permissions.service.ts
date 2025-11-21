@@ -10,7 +10,11 @@ export interface EmpresaPermissions {
 
 @Injectable()
 export class EmpresaPermissionsService {
-  private readonly AYNI_COMPANY_NAME = 'Ayni';
+  /**
+   * Variantes aceptadas del nombre de la empresa Ayni
+   * Incluye diferentes formas de escribir: Ayni, Aynic, ayni, AYNI, etc.
+   */
+  private readonly AYNI_VARIANTS = ['ayni', 'aynic', 'aynisac', 'ayni sac'];
 
   /**
    * Determina los permisos basados en la empresa del usuario
@@ -29,9 +33,17 @@ export class EmpresaPermissionsService {
 
   /**
    * Verifica si un usuario pertenece a Ayni
+   * Acepta todas las variantes: ayni, Ayni, AYNI, Aynic, aynic, AyNi, etc.
    */
   isAyniUser(empresa: string): boolean {
-    return empresa?.toLowerCase() === this.AYNI_COMPANY_NAME.toLowerCase();
+    if (!empresa) return false;
+
+    const empresaLower = empresa.toLowerCase().trim();
+
+    return this.AYNI_VARIANTS.some(
+      (variant) =>
+        empresaLower === variant || empresaLower.startsWith(variant + ' '),
+    );
   }
 
   /**
