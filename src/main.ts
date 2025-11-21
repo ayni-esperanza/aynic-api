@@ -52,6 +52,8 @@ function buildCorsOrigin() {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.setGlobalPrefix('v1');
+
   // LOGS TEMPORALES para debug
   console.log('🔍 === MAIN.TS VARIABLES ===');
   console.log(' NODE_ENV:', process.env.NODE_ENV);
@@ -108,7 +110,7 @@ async function bootstrap() {
     )
     .setVersion('1.0')
     .addServer('https://linea.aynisac.com/v1', 'Servidor de Producción')
-    .addServer('http://localhost:3000', 'Servidor Local')
+    .addServer('http://localhost:3000/v1', 'Servidor Local')
     .addBearerAuth()
     .addTag('auth', 'Autenticación y autorización')
     .addTag('users', 'Gestión de usuarios')
