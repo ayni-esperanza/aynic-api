@@ -16,12 +16,10 @@ function buildCorsOrigin() {
   const allowCredentials = process.env.CORS_CREDENTIALS === 'true';
   const rawEnv = process.env.CORS_ORIGIN?.trim();
 
-  // Caso 1: CORS_ORIGIN="*"  ➜  si credentials=true, usamos origin:true (refleja el origin real)
   if (rawEnv === '*') {
     return allowCredentials ? true : '*';
   }
 
-  // Caso 2: Lista desde ENV o defaults
   const fromEnv = parseEnvOrigins(process.env.CORS_ORIGIN);
   const defaults: (string | RegExp)[] = [
     'http://localhost',
@@ -32,12 +30,10 @@ function buildCorsOrigin() {
   ];
   const allowed = fromEnv.length ? fromEnv : defaults;
 
-  // Función que valida origen vs lista/regex
   return (
     origin: string | undefined,
     cb: (err: Error | null, ok?: boolean) => void,
   ) => {
-    // Permitir requests sin Origin (curl, Postman, health checks)
     if (!origin) return cb(null, true);
 
     const ok = allowed.some((rule) => {
@@ -52,9 +48,7 @@ function buildCorsOrigin() {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('v1', {
-    exclude: ['health'],
-  });
+  app.setGlobalPrefix('v1');
 
   const corsOrigin = buildCorsOrigin();
   const allowCredentials = process.env.CORS_CREDENTIALS === 'true';
@@ -62,8 +56,7 @@ async function bootstrap() {
   app.enableCors({
     origin: corsOrigin as any,
     credentials: allowCredentials,
-    methods:
-      process.env.CORS_METHODS || 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    methods: process.env.CORS_METHODS || 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: [
       'Origin',
       'X-Requested-With',
@@ -84,7 +77,6 @@ async function bootstrap() {
     ],
   });
 
-  // Validación global
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -94,15 +86,12 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger
   const config = new DocumentBuilder()
     .setTitle('Ayni API')
-    .setDescription(
-      'API para gestión de líneas de vida y usuarios en el sistema Ayni.',
-    )
+    .setDescription('API para gestión de líneas de vida y usuarios en el sistema Ayni.')
     .setVersion('1.0')
     .addServer('https://linea.aynisac.com/v1', 'Servidor de Producción')
-    .addServer('http://localhost:3000', 'Servidor Local')
+    .addServer('http://localhost:3000/v1', 'Servidor Local')
     .addBearerAuth()
     .addTag('auth', 'Autenticación y autorización')
     .addTag('users', 'Gestión de usuarios')
@@ -119,8 +108,9 @@ async function bootstrap() {
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
 
-  console.log(`API: http://localhost:${port}`);
-  console.log(`Swagger: http://localhost:${port}/api`);
+  console.log(`API: http://localhost:${port}/v1`);
+  console.log(`Health: http://localhost:${port}/v1/health`);
+  console.log(`Swagger: http://localhost:${port}/v1/api`);
   console.log('CORS credentials:', allowCredentials);
   console.log(
     'CORS origin mode:',
