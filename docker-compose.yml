@@ -25,13 +25,7 @@ services:
     environment:
       - CLAMAV_NO_FRESHCLAM=false
     healthcheck:
-      test:
-        [
-          'CMD',
-          'sh',
-          '-c',
-          "printf 'PING\n' | nc -w 2 127.0.0.1 3310 | grep -q PONG",
-        ]
+      test: ['CMD', 'sh', '-c', "printf 'PING\n' | nc -w 2 127.0.0.1 3310 | grep -q PONG"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -41,8 +35,8 @@ services:
 
   api:
     build: .
-    ports:
-      - '3001:3000'
+    expose:
+      - "3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,17 +45,11 @@ services:
     env_file:
       - .env
     environment:
-      # overrides dentro de docker
       DB_HOST: postgres
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 3000
-
-      # compatibilidad nombres R2
       R2_BUCKET: ${R2_BUCKET_NAME}
-      # endpoint R2 (ACCOUNT_ID del .env)
       R2_ENDPOINT: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
-
-      # Config de ClamAV
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
       CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS}
@@ -75,6 +63,31 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
+    labels:
+      # Habilitar Traefik
+      - "traefik.enable=true"
+      
+      # Router HTTP (redirige a HTTPS)
+      - "traefik.http.routers.aynilinea-api-http.rule=Host(`linea.aynisac.com`)"
+      - "traefik.http.routers.aynilinea-api-http.entrypoints=web"
+      - "traefik.http.routers.aynilinea-api-http.middlewares=redirect-to-https"
+      
+      # Router HTTPS principal con PathPrefix /v1
+      - "traefik.http.routers.aynilinea-api.rule=Host(`linea.aynisac.com`)"
+      - "traefik.http.routers.aynilinea-api.entrypoints=websecure"
+      - "traefik.http.routers.aynilinea-api.tls=true"
+      - "traefik.http.routers.aynilinea-api.tls.certresolver=letsencrypt"
+      
+      # Service
+      - "traefik.http.services.aynilinea-api-service.loadbalancer.server.port=3000"
+      - "traefik.http.routers.aynilinea-api.service=aynilinea-api-service"
+      
+      # Middleware para redirect HTTP -> HTTPS
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      
+      # Especificar red
+      - "traefik.docker.network=dokploy-network"
 
 volumes:
   postgres_data:
