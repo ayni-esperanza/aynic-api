@@ -63,31 +63,6 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
-    labels:
-      # Habilitar Traefik
-      - "traefik.enable=true"
-      
-      # Router HTTP (redirige a HTTPS)
-      - "traefik.http.routers.aynilinea-api-http.rule=Host(`linea.aynisac.com`)"
-      - "traefik.http.routers.aynilinea-api-http.entrypoints=web"
-      - "traefik.http.routers.aynilinea-api-http.middlewares=redirect-to-https"
-      
-      # Router HTTPS principal con PathPrefix /v1
-      - "traefik.http.routers.aynilinea-api.rule=Host(`linea.aynisac.com`)"
-      - "traefik.http.routers.aynilinea-api.entrypoints=websecure"
-      - "traefik.http.routers.aynilinea-api.tls=true"
-      - "traefik.http.routers.aynilinea-api.tls.certresolver=letsencrypt"
-      
-      # Service
-      - "traefik.http.services.aynilinea-api-service.loadbalancer.server.port=3000"
-      - "traefik.http.routers.aynilinea-api.service=aynilinea-api-service"
-      
-      # Middleware para redirect HTTP -> HTTPS
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
-      
-      # Especificar red
-      - "traefik.docker.network=dokploy-network"
 
 volumes:
   postgres_data:
