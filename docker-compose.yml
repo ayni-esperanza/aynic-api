@@ -55,7 +55,7 @@ services:
       CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS}
       UPLOAD_MAX_MB: ${UPLOAD_MAX_MB}
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/v1/health"]      interval: 30s
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
