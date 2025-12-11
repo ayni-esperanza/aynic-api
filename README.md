@@ -72,36 +72,6 @@ NODE_ENV=development
 createdb ayni_db
 ```
 
-### Ejecutar migraciones
-
-```bash
-npm run migration:run
-```
-
-### Generar nueva migración
-
-```bash
-npm run migration:generate -- src/migrations/NombreDeMigracion
-```
-
-### Revertir migración
-
-```bash
-npm run migration:revert
-```
-
-### Ver estado de migraciones
-
-```bash
-npm run migration:show
-```
-
-### Restaurar backup
-
-```bash
-psql ayni_db < backups/ayni_backup.sql
-```
-
 ## 🏃 Ejecutar la Aplicación
 
 ### Modo Desarrollo
@@ -180,7 +150,7 @@ src/
 Una vez iniciada la aplicación, accede a la documentación interactiva:
 
 ```
-http://localhost:3000/api/docs
+http://localhost:3000/api/
 ```
 
 ## 🔐 Autenticación
@@ -399,13 +369,3 @@ Para soporte técnico, contactar al equipo de desarrollo.
 ## 🔄 Versiones
 
 - **v0.0.1** - Versión inicial
-
-## 📝 Changelog
-
-Ver archivo `CHANGELOG.md` para detalles de cambios entre versiones.
-
----
-
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
