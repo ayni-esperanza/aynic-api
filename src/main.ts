@@ -106,18 +106,11 @@ async function bootstrap() {
   await seedService.createDefaultUsers();
 
   const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   console.log(`API: http://localhost:${port}/v1`);
   console.log(`Health: http://localhost:${port}/v1/health`);
   console.log(`Swagger: http://localhost:${port}/v1/api`);
-  console.log('CORS credentials:', allowCredentials);
-  console.log(
-    'CORS origin mode:',
-    typeof corsOrigin === 'function'
-      ? 'custom-check (ENV list + defaults)'
-      : corsOrigin,
-  );
 }
 
 bootstrap();
