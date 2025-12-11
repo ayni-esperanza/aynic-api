@@ -140,35 +140,56 @@ export class PdfGeneratorService {
     records: ExpiredRecordCardData[],
     colors: any,
   ): void {
-    let currentY = 240;
     const cardWidth = 240;
     const cardHeight = 120;
     const cardsPerRow = 2;
     const cardMargin = 20;
+    const startY = 240; // Y inicial en primera página
+    const newPageStartY = 50; // Y inicial en páginas nuevas
+    const bottomMargin = 100;
 
-    records.forEach((record, index) => {
-      // Calcular posición de la tarjeta
-      const col = index % cardsPerRow;
-      const row = Math.floor(index / cardsPerRow);
+    // Calcular cuántas tarjetas caben por página
+    const rowHeight = cardHeight + cardMargin;
+    const firstPageAvailableHeight = doc.page.height - startY - bottomMargin;
+    const newPageAvailableHeight =
+      doc.page.height - newPageStartY - bottomMargin;
+
+    const rowsPerFirstPage = Math.floor(firstPageAvailableHeight / rowHeight);
+    const rowsPerNewPage = Math.floor(newPageAvailableHeight / rowHeight);
+    const cardsPerFirstPage = rowsPerFirstPage * cardsPerRow;
+    const cardsPerNewPage = rowsPerNewPage * cardsPerRow;
+
+    let currentPageStartIndex = 0;
+    let isFirstPage = true;
+
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+
+      // Determinar si necesitamos nueva página
+      const cardsInCurrentPage = isFirstPage
+        ? cardsPerFirstPage
+        : cardsPerNewPage;
+      const cardIndexInCurrentPage = i - currentPageStartIndex;
+
+      if (cardIndexInCurrentPage >= cardsInCurrentPage) {
+        // Necesitamos nueva página
+        doc.addPage();
+        isFirstPage = false;
+        currentPageStartIndex = i;
+      }
+
+      // Calcular posición en la página actual
+      const indexInPage = i - currentPageStartIndex;
+      const col = indexInPage % cardsPerRow;
+      const row = Math.floor(indexInPage / cardsPerRow);
 
       const x = 50 + col * (cardWidth + cardMargin);
-      const y = currentY + row * (cardHeight + cardMargin);
+      const baseY = isFirstPage ? startY : newPageStartY;
+      const y = baseY + row * rowHeight;
 
-      // Verificar si necesita nueva página
-      if (y + cardHeight > doc.page.height - 100) {
-        doc.addPage();
-        currentY = 50;
-        const newRow = Math.floor(index / cardsPerRow);
-        const adjustedY =
-          50 +
-          (newRow %
-            Math.floor((doc.page.height - 150) / (cardHeight + cardMargin))) *
-            (cardHeight + cardMargin);
-        this.drawCard(doc, record, x, adjustedY, cardWidth, cardHeight, colors);
-      } else {
-        this.drawCard(doc, record, x, y, cardWidth, cardHeight, colors);
-      }
-    });
+      // Dibujar la tarjeta
+      this.drawCard(doc, record, x, y, cardWidth, cardHeight, colors);
+    }
   }
 
   /**
@@ -283,18 +304,21 @@ export class PdfGeneratorService {
   }
 
   /**
-   * Genera el pie de página
+   * Genera el pie de página correctamente
    */
   private generateFooter(
     doc: PDFKit.PDFDocument,
     metadata: ReportMetadata,
     colors: any,
   ): void {
-    // Ir a la última página
+    // Obtener información del rango de páginas
     const pages = doc.bufferedPageRange();
-    for (let i = 0; i < pages.count; i++) {
-      doc.switchToPage(i);
+    this.logger.debug(
+      `Generando footer para ${pages.count} páginas (rango: ${pages.start} - ${pages.start + pages.count - 1})`,
+    );
 
+    // Para documentos ya creados, aplicar footer solo a la página actual
+    try {
       // Línea separadora
       doc
         .strokeColor(colors.border)
@@ -313,10 +337,17 @@ export class PdfGeneratorService {
           doc.page.height - 45,
           { align: 'left' },
         )
-        .text(`Página ${i + 1} de ${pages.count}`, 50, doc.page.height - 45, {
-          align: 'right',
-          width: 500,
-        });
+        .text(
+          `Página ${pages.start + pages.count - 1} de ${pages.start + pages.count - 1}`,
+          50,
+          doc.page.height - 45,
+          {
+            align: 'right',
+            width: 500,
+          },
+        );
+    } catch (error) {
+      this.logger.error(`Error procesando footer:`, error);
     }
   }
 

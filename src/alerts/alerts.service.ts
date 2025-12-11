@@ -229,7 +229,7 @@ export class AlertsService {
     // Alertas recientes (últimas 10)
     const recientes = await this.alertRepository.find({
       order: { fecha_creada: 'DESC' },
-      take: 10,
+      take: 50, // 10 a 50
       relations: ['record'],
     });
 
@@ -240,7 +240,7 @@ export class AlertsService {
         prioridad: In([AlertPriority.CRITICAL, AlertPriority.HIGH]),
       },
       order: { fecha_creada: 'DESC' },
-      take: 20,
+      take: 30, // de 20 a 30
       relations: ['record'],
     });
 

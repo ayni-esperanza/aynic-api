@@ -10,6 +10,7 @@ import { RecordMovementHistoryModule } from '../record-movement-history/record-m
 import { AuthModule } from '../auth/auth.module';
 import { AuthorizationCodeModule } from '../authorization-codes/authorization-code.module';
 import { EmpresaPermissionsService } from './services/empresa-permissions.service';
+import { PurchaseOrdersModule } from '../purchase-orders/purchase-orders.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { EmpresaPermissionsService } from './services/empresa-permissions.servic
     RecordMovementHistoryModule,
     AuthModule, // Proporciona EmpresaFilterGuard con UserRepository
     forwardRef(() => AuthorizationCodeModule),
+    PurchaseOrdersModule,
   ],
   controllers: [RecordsController],
   providers: [RecordsService, EmpresaPermissionsService],

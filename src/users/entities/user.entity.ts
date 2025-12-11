@@ -31,4 +31,10 @@ export class User {
 
   @Column()
   rol: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  ultimoCambioPassword: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  ultimoLogin: Date;
 }

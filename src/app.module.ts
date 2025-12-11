@@ -21,6 +21,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
 import { RecordRelationshipModule } from './record-relationships/record-relationship.module';
 import { ReportsModule } from './reports/reports.module';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
+import { HealthModule } from './health/health.module';
 
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -82,6 +83,7 @@ import { getDatabaseConfig } from './config/database.config';
     RecordRelationshipModule,
     ReportsModule,
     PurchaseOrdersModule,
+    HealthModule,
   ],
   providers: [
     // Rate Limiting Guard globalmente

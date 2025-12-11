@@ -11,6 +11,7 @@ import { AuthorizationCode } from '../authorization-codes/entities/authorization
 import { Maintenance } from '../maintenance/entities/maintenance.entity';
 import { RecordRelationship } from '../record-relationships/entities/record-relationship.entity';
 import { UserSession } from '../auth/entities/user-session.entity';
+import { PurchaseOrder } from '../purchase-orders/entities/purchase-order.entity';
 
 const configService = new ConfigService();
 
@@ -40,8 +41,7 @@ export default new DataSource({
     Maintenance,
     RecordRelationship,
     UserSession,
+    PurchaseOrder,
   ],
-  migrations: ['src/migrations/*.ts'],
-  migrationsTableName: 'migrations',
   ssl: enableSSL,
 });

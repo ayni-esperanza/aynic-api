@@ -42,6 +42,8 @@ export class AuthService {
         empresa: user.empresa,
         nombre: user.nombre,
         rol: user.rol,
+        ultimoCambioPassword: user.ultimoCambioPassword,
+        ultimoLogin: user.ultimoLogin,
       };
     }
     return null;
@@ -52,6 +54,12 @@ export class AuthService {
     if (user.rol === 'ADMINISTRADOR') {
       await this.invalidatePreviousSessions(user.id);
     }
+
+    // Actualizar último login
+    await this.updateLastLogin(user.id);
+
+    // Verificar si necesita cambiar contraseña
+    const needsPasswordChange = await this.needsPasswordChange(user.id);
 
     const payload: JwtPayload = {
       username: user.usuario,
@@ -67,6 +75,7 @@ export class AuthService {
     return {
       access_token: token,
       user,
+      needsPasswordChange,
     };
   }
 
@@ -134,5 +143,25 @@ export class AuthService {
 
   async hashPassword(plainPassword: string): Promise<string> {
     return await bcrypt.hash(plainPassword, this.saltRounds);
+  }
+
+  async updateLastLogin(userId: number): Promise<void> {
+    await this.usersService.updateLastLogin(userId);
+  }
+
+  async needsPasswordChange(userId: number): Promise<boolean> {
+    const user = await this.usersService.findById(userId);
+    if (!user) return false;
+
+    // Si nunca ha cambiado la contraseña, necesita cambiarla
+    if (!user.ultimoCambioPassword) return true;
+
+    // Si ya cambió la contraseña alguna vez, no necesita cambiarla más
+    return false;
+  }
+
+  async changePassword(userId: number, newPassword: string): Promise<void> {
+    const hashedPassword = await this.hashPassword(newPassword);
+    await this.usersService.updatePassword(userId, hashedPassword);
   }
 }

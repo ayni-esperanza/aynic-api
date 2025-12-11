@@ -139,9 +139,17 @@ export class RecordsController {
     required: false,
     description: 'Buscar por ubicación (parcial)',
   })
-  @ApiQuery({ name: 'seccion', required: false, description: 'Filtrar por sección' })
+  @ApiQuery({
+    name: 'seccion',
+    required: false,
+    description: 'Filtrar por sección',
+  })
   @ApiQuery({ name: 'area', required: false, description: 'Filtrar por área' })
-  @ApiQuery({ name: 'planta', required: false, description: 'Filtrar por planta' })
+  @ApiQuery({
+    name: 'planta',
+    required: false,
+    description: 'Filtrar por planta',
+  })
   @ApiQuery({
     name: 'anclaje_equipos',
     required: false,
@@ -152,14 +160,30 @@ export class RecordsController {
     required: false,
     description: 'Buscar por código de placa (parcial)',
   })
-  findAll(@Query() query: GetRecordsQueryDto, @Req() request: any) {
+  async findAll(@Query() query: GetRecordsQueryDto, @Req() request: any) {
     const userEmpresa = request.userEmpresa;
-    // Si hay información de empresa, usar el método con filtro
+
+    let result;
     if (userEmpresa) {
-      return this.recordsService.findAllWithEmpresaFilter(query, userEmpresa);
+      result = await this.recordsService.findAllWithEmpresaFilter(
+        query,
+        userEmpresa,
+      );
+    } else {
+      result = await this.recordsService.findAll(query);
     }
-    // Fallback al método original sin filtro de empresa
-    return this.recordsService.findAll(query);
+
+    const mappedData = result.data.map((record) => ({
+      ...record,
+      purchase_order_num: record.purchaseOrder?.numero || null,
+      purchase_order_termino_referencias:
+        record.purchaseOrder?.termino_referencias || null,
+    }));
+
+    return {
+      ...result,
+      data: mappedData,
+    };
   }
 
   @Get('validation-rules')
@@ -370,8 +394,14 @@ export class RecordsController {
   @ApiOperation({ summary: 'Obtener un registro por ID' })
   @ApiResponse({ status: 200, description: 'Registro encontrado' })
   @ApiResponse({ status: 404, description: 'Registro no encontrado' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.recordsService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const record = await this.recordsService.findOne(id);
+    return {
+      ...record,
+      purchase_order_num: record.purchaseOrder?.numero || null,
+      purchase_order_termino_referencias:
+        record.purchaseOrder?.termino_referencias || null,
+    };
   }
 
   @Patch(':id')

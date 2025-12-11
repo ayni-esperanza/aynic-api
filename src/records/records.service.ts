@@ -23,6 +23,7 @@ import { Record } from './entities/record.entity';
 import { CreateRecordDto } from './dto/create-record.dto';
 import { UpdateRecordDto } from './dto/update-record.dto';
 import { GetRecordsQueryDto } from './dto/get-records-query.dto';
+import { PurchaseOrdersService } from '../purchase-orders/purchase-orders.service';
 import {
   PaginatedResponse,
   PaginationHelper,
@@ -35,6 +36,7 @@ export class RecordsService {
     private readonly recordRepository: Repository<Record>,
     private readonly movementTrackingService: MovementTrackingService,
     private readonly empresaPermissionsService: EmpresaPermissionsService,
+    private readonly purchaseOrdersService: PurchaseOrdersService,
   ) {}
 
   async create(
@@ -99,7 +101,16 @@ export class RecordsService {
       estado_actual: createRecordDto.estado_actual || 'ACTIVO',
     });
 
-    const savedRecord = await this.recordRepository.save(record);
+    let savedRecord = await this.recordRepository.save(record);
+
+    // Vincular orden de compra si viene número
+    if (createRecordDto.purchase_order_num) {
+      savedRecord = await this.purchaseOrdersService.linkToRecord(
+        savedRecord.id,
+        createRecordDto.purchase_order_num,
+        createRecordDto.purchase_order_termino_referencias,
+      );
+    }
 
     if (trackingContext) {
       await this.movementTrackingService.trackRecordCreation(
@@ -179,6 +190,7 @@ export class RecordsService {
       order: { [sortBy]: sortOrder },
       skip: (page - 1) * limit,
       take: limit,
+      relations: ['purchaseOrder'],
     };
 
     const [records, total] = await this.recordRepository.findAndCount(options);
@@ -286,6 +298,7 @@ export class RecordsService {
       order: { [sortBy]: sortOrder },
       skip: (page - 1) * limit,
       take: limit,
+      relations: ['purchaseOrder'],
     };
 
     const [records, total] = await this.recordRepository.findAndCount(options);
@@ -315,10 +328,15 @@ export class RecordsService {
   }
 
   async findOne(id: number): Promise<Record> {
-    const record = await this.recordRepository.findOne({ where: { id } });
+    const record = await this.recordRepository.findOne({
+      where: { id },
+      relations: ['purchaseOrder'],
+    });
+
     if (!record) {
       throw new NotFoundException(`Registro con ID ${id} no encontrado`);
     }
+
     return record;
   }
 
@@ -352,36 +370,43 @@ export class RecordsService {
   ): Promise<Record> {
     const record = await this.findOne(id);
 
-    if (updateRecordDto.codigo && updateRecordDto.codigo !== record.codigo) {
+    const {
+      purchase_order_num,
+      purchase_order_termino_referencias,
+      ...recordUpdateData
+    } = updateRecordDto;
+
+    // Validaciones existentes...
+    if (recordUpdateData.codigo && recordUpdateData.codigo !== record.codigo) {
       const existingRecord = await this.recordRepository.findOne({
-        where: { codigo: updateRecordDto.codigo },
+        where: { codigo: recordUpdateData.codigo },
       });
       if (existingRecord) {
         throw new ConflictException(
-          `Ya existe un registro con el código: ${updateRecordDto.codigo}`,
+          `Ya existe un registro con el código: ${recordUpdateData.codigo}`,
         );
       }
     }
 
     // Verificar unicidad del código de placa al actualizar
     if (
-      updateRecordDto.codigo_placa &&
-      updateRecordDto.codigo_placa !== record.codigo_placa
+      recordUpdateData.codigo_placa &&
+      recordUpdateData.codigo_placa !== record.codigo_placa
     ) {
       const existingPlateCode = await this.recordRepository.findOne({
-        where: { codigo_placa: updateRecordDto.codigo_placa },
+        where: { codigo_placa: recordUpdateData.codigo_placa },
       });
       if (existingPlateCode) {
         throw new ConflictException(
-          `Ya existe un registro con el código de placa: ${updateRecordDto.codigo_placa}`,
+          `Ya existe un registro con el código de placa: ${recordUpdateData.codigo_placa}`,
         );
       }
     }
 
     const fechaInstalacion =
-      updateRecordDto.fecha_instalacion || record.fecha_instalacion;
+      recordUpdateData.fecha_instalacion || record.fecha_instalacion;
     const fechaCaducidad =
-      updateRecordDto.fecha_caducidad || record.fecha_caducidad;
+      recordUpdateData.fecha_caducidad || record.fecha_caducidad;
 
     if (fechaInstalacion && fechaCaducidad) {
       const instalacion = new Date(String(fechaInstalacion));
@@ -393,17 +418,17 @@ export class RecordsService {
       }
     }
 
-    let nuevaFechaCaducidad = updateRecordDto.fecha_caducidad
-      ? new Date(String(updateRecordDto.fecha_caducidad))
+    let nuevaFechaCaducidad = recordUpdateData.fecha_caducidad
+      ? new Date(String(recordUpdateData.fecha_caducidad))
       : record.fecha_caducidad;
 
     if (
       fechaInstalacion &&
-      (updateRecordDto.fv_anios !== undefined ||
-        updateRecordDto.fv_meses !== undefined)
+      (recordUpdateData.fv_anios !== undefined ||
+        recordUpdateData.fv_meses !== undefined)
     ) {
-      const anios = updateRecordDto.fv_anios ?? record.fv_anios ?? 0;
-      const meses = updateRecordDto.fv_meses ?? record.fv_meses ?? 0;
+      const anios = recordUpdateData.fv_anios ?? record.fv_anios ?? 0;
+      const meses = recordUpdateData.fv_meses ?? record.fv_meses ?? 0;
 
       if (anios > 0 || meses > 0) {
         nuevaFechaCaducidad = new Date(fechaInstalacion);
@@ -435,9 +460,21 @@ export class RecordsService {
     };
 
     await this.recordRepository.update(id, {
-      ...updateRecordDto,
+      ...recordUpdateData, // Ya no incluye purchase_order_num ni purchase_order_termino_referencias
       fecha_caducidad: nuevaFechaCaducidad,
     });
+
+    if (purchase_order_num !== undefined) {
+      if (purchase_order_num) {
+        await this.purchaseOrdersService.linkToRecord(
+          id,
+          purchase_order_num,
+          purchase_order_termino_referencias,
+        );
+      } else {
+        await this.purchaseOrdersService.unlinkFromRecord(id);
+      }
+    }
 
     const updatedRecord = await this.findOne(id);
 
@@ -553,7 +590,8 @@ export class RecordsService {
       ubicacion: string;
     }>
   > {
-    let whereConditions: FindOptionsWhere<Record> | FindOptionsWhere<Record>[] = {};
+    let whereConditions: FindOptionsWhere<Record> | FindOptionsWhere<Record>[] =
+      {};
 
     if (searchTerm) {
       // Buscar en código, cliente o ubicación

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -50,6 +51,8 @@ export class UsersService {
       empresa: savedUser.empresa,
       nombre: savedUser.nombre,
       rol: savedUser.rol,
+      ultimoCambioPassword: savedUser.ultimoCambioPassword,
+      ultimoLogin: savedUser.ultimoLogin,
     };
   }
 
@@ -65,6 +68,8 @@ export class UsersService {
       empresa: user.empresa,
       nombre: user.nombre,
       rol: user.rol,
+      ultimoCambioPassword: user.ultimoCambioPassword,
+      ultimoLogin: user.ultimoLogin,
     }));
   }
 
@@ -85,6 +90,8 @@ export class UsersService {
       empresa: user.empresa,
       nombre: user.nombre,
       rol: user.rol,
+      ultimoCambioPassword: user.ultimoCambioPassword,
+      ultimoLogin: user.ultimoLogin,
     };
   }
 
@@ -129,6 +136,8 @@ export class UsersService {
       empresa: updatedUser!.empresa,
       nombre: updatedUser!.nombre,
       rol: updatedUser!.rol,
+      ultimoCambioPassword: updatedUser!.ultimoCambioPassword,
+      ultimoLogin: updatedUser!.ultimoLogin,
     };
   }
 
@@ -180,6 +189,8 @@ export class UsersService {
       empresa: updatedUser!.empresa,
       nombre: updatedUser!.nombre,
       rol: updatedUser!.rol,
+      ultimoCambioPassword: updatedUser!.ultimoCambioPassword,
+      ultimoLogin: updatedUser!.ultimoLogin,
     };
   }
 
@@ -228,17 +239,26 @@ export class UsersService {
       empresa: updatedUser!.empresa,
       nombre: updatedUser!.nombre,
       rol: updatedUser!.rol,
+      ultimoCambioPassword: updatedUser!.ultimoCambioPassword,
+      ultimoLogin: updatedUser!.ultimoLogin,
     };
   }
 
   async remove(id: number): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    try {
+      const user = await this.userRepository.findOne({ where: { id } });
 
-    if (!user) {
-      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+      if (!user) {
+        throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+      }
+
+      await this.userRepository.remove(user);
+    } catch (error) {
+      if (error.code === '23503') {
+        throw new BadRequestException('No se puede eliminar el usuario porque tiene órdenes de compra asociadas. Primero elimine las órdenes de compra relacionadas.');
+      }
+      throw error;
     }
-
-    await this.userRepository.remove(user);
   }
 
   async findByUsername(username: string): Promise<User | null> {
@@ -248,5 +268,20 @@ export class UsersService {
   private async hashPassword(plainPassword: string): Promise<string> {
     const saltRounds = 10;
     return await bcrypt.hash(plainPassword, saltRounds);
+  }
+
+  async findById(id: number): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async updateLastLogin(userId: number): Promise<void> {
+    await this.userRepository.update(userId, { ultimoLogin: new Date() });
+  }
+
+  async updatePassword(userId: number, hashedPassword: string): Promise<void> {
+    await this.userRepository.update(userId, { 
+      contrasenia: hashedPassword,
+      ultimoCambioPassword: new Date()
+    });
   }
 }

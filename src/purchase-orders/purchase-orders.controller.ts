@@ -9,42 +9,32 @@ import {
   UseGuards,
   Request,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/auth.decorators';
-import { PurchaseOrderStatus, PurchaseOrderType } from './entities/purchase-order.entity';
+import { PurchaseOrder } from './entities/purchase-order.entity';
 
 @Controller('purchase-orders')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 export class PurchaseOrdersController {
   constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
 
   @Post()
   @Roles('ADMINISTRADOR', 'USUARIO')
-  create(@Body() createPurchaseOrderDto: CreatePurchaseOrderDto, @Request() req) {
-    return this.purchaseOrdersService.create(createPurchaseOrderDto, req.user.id);
+  create(@Body() createPurchaseOrderDto: CreatePurchaseOrderDto) {
+    return this.purchaseOrdersService.create(createPurchaseOrderDto);
   }
 
   @Get()
   @Roles('ADMINISTRADOR', 'USUARIO')
   findAll() {
     return this.purchaseOrdersService.findAll();
-  }
-
-  @Get('status/:status')
-  @Roles('ADMINISTRADOR', 'USUARIO')
-  findByStatus(@Param('status') status: PurchaseOrderStatus) {
-    return this.purchaseOrdersService.findByStatus(status);
-  }
-
-  @Get('type/:type')
-  @Roles('ADMINISTRADOR', 'USUARIO')
-  findByType(@Param('type') type: PurchaseOrderType) {
-    return this.purchaseOrdersService.findByType(type);
   }
 
   @Get(':id')
@@ -58,14 +48,20 @@ export class PurchaseOrdersController {
   update(
     @Param('id') id: string,
     @Body() updatePurchaseOrderDto: UpdatePurchaseOrderDto,
-    @Request() req,
   ) {
-    return this.purchaseOrdersService.update(+id, updatePurchaseOrderDto, req.user.id);
+    return this.purchaseOrdersService.update(+id, updatePurchaseOrderDto);
   }
 
   @Delete(':id')
   @Roles('ADMINISTRADOR')
-  remove(@Param('id') id: string) {
-    return this.purchaseOrdersService.remove(+id);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: string) {
+    await this.purchaseOrdersService.remove(+id);
+  }
+
+  @Get(':id/can-delete')
+  @Roles('ADMINISTRADOR')
+  canDelete(@Param('id') id: string) {
+    return this.purchaseOrdersService.canDelete(+id);
   }
 }

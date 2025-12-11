@@ -11,25 +11,12 @@ import { AuthorizationCode } from '../authorization-codes/entities/authorization
 import { Maintenance } from '../maintenance/entities/maintenance.entity';
 import { RecordRelationship } from '../record-relationships/entities/record-relationship.entity';
 import { UserSession } from '../auth/entities/user-session.entity';
+import { PurchaseOrder } from '../purchase-orders/entities/purchase-order.entity';
 
 export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions => {
   const host = config.get<string>('DB_HOST') ?? 'localhost';
   const port = +(config.get<number>('DB_PORT') ?? 5432);
   const isProduction = config.get('NODE_ENV') === 'production';
-  
-  // LOG TEMPORAL para debug
-  console.log('🔍 === DEBUG VARIABLES DE ENTORNO ===');
-  console.log(' NODE_ENV:', config.get('NODE_ENV'));
-  console.log(' DB_HOST:', config.get('DB_HOST'));
-  console.log(' DB_PORT:', config.get('DB_PORT'));
-  console.log(' DB_USERNAME:', config.get('DB_USERNAME'));
-  console.log(' DB_DATABASE:', config.get('DB_DATABASE'));
-  console.log(' DB_SSL_ENABLED:', config.get('DB_SSL_ENABLED'));
-  console.log(' JWT_SECRET:', config.get('JWT_SECRET') ? '✅ SET' : '❌ NOT SET');
-  console.log(' R2_BUCKET_NAME:', config.get('R2_BUCKET_NAME'));
-  console.log(' isProduction:', isProduction);
-  console.log('🔍 synchronize:', isProduction ? false : true);
-  console.log('🔍 === FIN DEBUG ===');
   
   // Configuración SSL simplificada usando DB_SSL_ENABLED
   const sslEnabled = config.get('DB_SSL_ENABLED') === 'true';
@@ -54,6 +41,7 @@ export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions =
       Maintenance,
       RecordRelationship,
       UserSession,
+      PurchaseOrder,
     ],
     autoLoadEntities: true,
     ssl: enableSSL,
@@ -63,10 +51,7 @@ export const getDatabaseConfig = (config: ConfigService): TypeOrmModuleOptions =
     // Configuración para PRODUCCIÓN
     return {
       ...baseConfig,
-      synchronize: false, // para producción
-      migrations: ['dist/migrations/*.js'],
-      migrationsRun: true, // Ejecuta migraciones automáticamente
-      migrationsTableName: 'migrations',
+      synchronize: true, // Usar synchronize en lugar de migraciones
       logging: ['error', 'warn'], // Logging limitado para producción
     };
   } else {

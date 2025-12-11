@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { PurchaseOrder } from '../../purchase-orders/entities/purchase-order.entity';
 
 @Entity('registro')
 export class Record {
@@ -65,6 +66,14 @@ export class Record {
   @Column({ type: 'date', nullable: true })
   fecha_caducidad: Date;
 
+  @Column({ type: 'date', nullable: true })
+  fecha_mantenimiento: Date;
+
   @Column({ nullable: true })
   estado_actual: string;
+
+  // Relación: cada línea de vida puede estar vinculada a una orden de compra
+  @ManyToOne(() => PurchaseOrder, (po) => po.records, { nullable: true })
+  @JoinColumn({ name: 'purchase_order_id' })
+  purchaseOrder?: PurchaseOrder | null;
 }
