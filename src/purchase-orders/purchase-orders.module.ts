@@ -6,6 +6,7 @@ import { PurchaseOrder } from './entities/purchase-order.entity';
 import { Record } from '../records/entities/record.entity';
 import { User } from '../users/entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
+import { PurchaseOrderMigrationService } from '../shared/purchase-order-migration.service';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { AuthModule } from '../auth/auth.module';
     AuthModule,
   ],
   controllers: [PurchaseOrdersController],
-  providers: [PurchaseOrdersService],
+  providers: [PurchaseOrdersService, PurchaseOrderMigrationService],
   exports: [PurchaseOrdersService],
 })
 export class PurchaseOrdersModule {}
