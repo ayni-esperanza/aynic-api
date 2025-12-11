@@ -38,7 +38,7 @@ services:
       context: .
       dockerfile: Dockerfile
     expose:
-      - "3000"  # Consistente con Dockerfile
+      - "3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,7 +50,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       NODE_ENV: production
-      PORT: 3000  # Consistente
+      PORT: 3000
       
       R2_BUCKET: ${R2_BUCKET_NAME}
       R2_ENDPOINT: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
@@ -59,12 +59,36 @@ services:
       CLAMAV_PORT: 3310
       CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS}
       UPLOAD_MAX_MB: ${UPLOAD_MAX_MB}
+    labels:
+      # Habilitar Traefik
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      
+      # HTTP Router (puerto 80) - Redirige a HTTPS
+      - "traefik.http.routers.aynilinea-web.rule=Host(`linea.aynisac.com`)"
+      - "traefik.http.routers.aynilinea-web.entrypoints=web"
+      - "traefik.http.routers.aynilinea-web.middlewares=redirect-to-https@file"
+      
+      # HTTPS Router (puerto 443)
+      - "traefik.http.routers.aynilinea-secure.rule=Host(`linea.aynisac.com`)"
+      - "traefik.http.routers.aynilinea-secure.entrypoints=websecure"
+      - "traefik.http.routers.aynilinea-secure.tls=true"
+      - "traefik.http.routers.aynilinea-secure.tls.certresolver=letsencrypt"
+      
+      # Service
+      - "traefik.http.services.aynilinea.loadbalancer.server.port=3000"
+      
+      - "traefik.http.middlewares.aynilinea-cors.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH"
+      - "traefik.http.middlewares.aynilinea-cors.headers.accesscontrolalloworiginlist=https://linea.aynisac.com"
+      - "traefik.http.middlewares.aynilinea-cors.headers.accesscontrolallowcredentials=true"
+      - "traefik.http.middlewares.aynilinea-cors.headers.accesscontrolallowheaders=*"
+      - "traefik.http.routers.aynilinea-secure.middlewares=aynilinea-cors"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s  # Tiempo adicional para el arranque
+      start_period: 60s
     restart: unless-stopped
     networks:
       - dokploy-network
