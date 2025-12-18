@@ -229,7 +229,7 @@ export class AlertsService {
     // Alertas recientes (últimas 10)
     const recientes = await this.alertRepository.find({
       order: { fecha_creada: 'DESC' },
-      take: 50, // 10 a 50
+      take: 20, // de 10 a 20
       relations: ['record'],
     });
 
@@ -237,10 +237,10 @@ export class AlertsService {
     const criticas = await this.alertRepository.find({
       where: {
         leida: false,
-        prioridad: In([AlertPriority.CRITICAL, AlertPriority.HIGH]),
+        prioridad: AlertPriority.CRITICAL, // Solo CRITICAL, no HIGH
       },
       order: { fecha_creada: 'DESC' },
-      take: 30, // de 20 a 30
+      take: 15, // Límite razonable
       relations: ['record'],
     });
 
@@ -296,6 +296,94 @@ export class AlertsService {
       .execute();
 
     return result.affected || 0;
+  }
+
+  async getDetailedStatistics(): Promise<{
+    resumen: {
+      total: number;
+      leidas: number;
+      noLeidas: number;
+    };
+    porEstado: Array<{ estado: string; count: number }>;
+    porPrioridad: Array<{ prioridad: AlertPriority; count: number }>;
+    porTipo: Array<{ tipo: AlertType; count: number }>;
+    registrosAfectados: number;
+  }> {
+    // Contadores básicos
+    const total = await this.alertRepository.count();
+    const leidas = await this.alertRepository.count({
+      where: { leida: true },
+    });
+    const noLeidas = await this.alertRepository.count({
+      where: { leida: false },
+    });
+
+    // Estadísticas por estado del registro asociado
+    const porEstadoQuery = await this.alertRepository
+      .createQueryBuilder('alert')
+      .innerJoin('alert.record', 'record')
+      .select('record.estado_actual', 'estado')
+      .addSelect('COUNT(DISTINCT alert.id)', 'count')
+      .where('alert.leida = :leida', { leida: false })
+      .groupBy('record.estado_actual')
+      .getRawMany();
+
+    const porEstado = porEstadoQuery.map((item: any) => ({
+      estado: item.estado,
+      count: parseInt(item.count, 10),
+    }));
+
+    // Estadísticas por prioridad
+    const porPrioridadQuery = await this.alertRepository
+      .createQueryBuilder('alert')
+      .select('alert.prioridad', 'prioridad')
+      .addSelect('COUNT(*)', 'count')
+      .where('alert.leida = :leida', { leida: false })
+      .groupBy('alert.prioridad')
+      .getRawMany();
+
+    const porPrioridad = porPrioridadQuery.map((item: any) => ({
+      prioridad: item.prioridad as AlertPriority,
+      count: parseInt(item.count, 10),
+    }));
+
+    // Estadísticas por tipo
+    const porTipoQuery = await this.alertRepository
+      .createQueryBuilder('alert')
+      .select('alert.tipo', 'tipo')
+      .addSelect('COUNT(*)', 'count')
+      .where('alert.leida = :leida', { leida: false })
+      .groupBy('alert.tipo')
+      .getRawMany();
+
+    const porTipo = porTipoQuery.map((item: any) => ({
+      tipo: item.tipo as AlertType,
+      count: parseInt(item.count, 10),
+    }));
+
+    // Registros únicos afectados
+    const registrosAfectadosQuery = await this.alertRepository
+      .createQueryBuilder('alert')
+      .select('COUNT(DISTINCT alert.registro_id)', 'count')
+      .where('alert.leida = :leida', { leida: false })
+      .getRawOne();
+
+    const registrosAfectados = parseInt(
+      registrosAfectadosQuery?.count || '0',
+      10,
+    );
+
+    return {
+      resumen: {
+        total,
+        leidas,
+        noLeidas,
+      },
+      porEstado,
+      porPrioridad,
+      porTipo,
+      registrosAfectados,
+    };
   }
 
   /**

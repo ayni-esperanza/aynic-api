@@ -160,6 +160,17 @@ export class AlertsController {
     );
   }
 
+  @Get('detailed-stats')
+  @Roles('ADMINISTRADOR')
+  @ApiOperation({ summary: 'Obtener estadísticas detalladas de alertas' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas detalladas obtenidas exitosamente',
+  })
+  getDetailedStatistics() {
+    return this.alertsService.getDetailedStatistics();
+  }
+
   @Patch('mark-all-read')
   @Roles('ADMINISTRADOR')
   @ApiOperation({ summary: 'Marcar todas las alertas como leídas' })

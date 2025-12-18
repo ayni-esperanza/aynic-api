@@ -22,8 +22,7 @@ export class AlertGeneratorService {
   // Configuraciones de frecuencia (en días)
   private readonly ALERT_FREQUENCIES = {
     [AlertType.POR_VENCER]: 7, // Cada 7 días
-    [AlertType.VENCIDO]: 3, // Cada 3 días
-    [AlertType.CRITICO]: 1, // Diario
+    [AlertType.VENCIDO]: 1, // Cada 3 días
   };
 
   constructor(
@@ -40,7 +39,7 @@ export class AlertGeneratorService {
     if (this.isEnabled) {
       this.logger.log('Generador de alertas habilitado');
       this.logger.log(
-        `Frecuencias configuradas: POR_VENCER=${this.ALERT_FREQUENCIES.POR_VENCER}d, VENCIDO=${this.ALERT_FREQUENCIES.VENCIDO}d, CRITICO=${this.ALERT_FREQUENCIES.CRITICO}d`,
+        `Frecuencias: POR_VENCER=${this.ALERT_FREQUENCIES[AlertType.POR_VENCER]}d, VENCIDO=${this.ALERT_FREQUENCIES[AlertType.VENCIDO]}d`,
       );
     } else {
       this.logger.log('Generador de alertas deshabilitado');
@@ -56,7 +55,7 @@ export class AlertGeneratorService {
       return;
     }
 
-    this.logger.log('Iniciando generación diaria de alertas...');
+    this.logger.log(' Iniciando generación diaria de alertas...');
 
     try {
       const startTime = Date.now();
@@ -66,30 +65,30 @@ export class AlertGeneratorService {
         where: {
           fecha_caducidad: Not(IsNull()),
         },
-        select: [
-          'id',
-          'codigo',
-          'fecha_caducidad',
-          'estado_actual',
-          'cliente',
-        ],
+        select: ['id', 'codigo', 'fecha_caducidad', 'estado_actual', 'cliente'],
       });
 
       if (records.length === 0) {
         this.logger.log(
-          'No hay registros con fecha de caducidad para evaluar',
+          '  No hay registros con fecha de caducidad para evaluar',
         );
         return;
       }
 
       let alertsGenerated = 0;
+      const alertsByPriority = {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+      };
 
       for (const record of records) {
         const statusInfo = this.statusCalculator.getStatusInfo(
           record.fecha_caducidad,
         );
 
-        // Solo crear alertas para registros que necesitan atención
+        //  Solo crear alertas para registros que necesitan atención
         if (
           statusInfo.priority === 'medium' ||
           statusInfo.priority === 'high' ||
@@ -104,16 +103,20 @@ export class AlertGeneratorService {
           if (shouldCreateAlert) {
             await this.createAlert(record, statusInfo, alertType);
             alertsGenerated++;
+            alertsByPriority[statusInfo.priority]++;
           }
         }
       }
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Generación de alertas completada en ${duration}ms:`);
-      this.logger.log(`Registros evaluados: ${records.length}`);
-      this.logger.log(`Alertas generadas: ${alertsGenerated}`);
+      this.logger.log(` Generación de alertas completada en ${duration}ms:`);
+      this.logger.log(`    Registros evaluados: ${records.length}`);
+      this.logger.log(`    Alertas generadas: ${alertsGenerated}`);
+      this.logger.log(`    Críticas: ${alertsByPriority.critical}`);
+      this.logger.log(`     Altas: ${alertsByPriority.high}`);
+      this.logger.log(`    Medias: ${alertsByPriority.medium}`);
     } catch (error) {
-      this.logger.error('Error durante la generación de alertas:', error);
+      this.logger.error(' Error durante la generación de alertas:', error);
     }
   }
 
@@ -176,12 +179,8 @@ export class AlertGeneratorService {
    * Mapear el status del calculador a tipo de alerta
    */
   private getAlertTypeFromStatus(statusInfo: StatusInfo): AlertType {
-    if (statusInfo.priority === 'critical') {
-      return AlertType.CRITICO;
-    } else if (statusInfo.status === 'VENCIDO') {
+    if (statusInfo.status === 'VENCIDO') {
       return AlertType.VENCIDO;
-    } else if (statusInfo.status === 'POR_VENCER') {
-      return AlertType.POR_VENCER;
     }
 
     return AlertType.POR_VENCER; // Default
@@ -213,20 +212,29 @@ export class AlertGeneratorService {
     statusInfo: StatusInfo,
   ): string {
     const cliente = record.cliente ? ` (${record.cliente})` : '';
+    const daysAbs = Math.abs(statusInfo.daysRemaining);
 
     switch (statusInfo.priority) {
       case 'critical':
-        return `CRÍTICO: El registro ${record.codigo}${cliente} lleva ${Math.abs(statusInfo.daysRemaining)} días vencido`;
+        // Más de 30 días vencido
+        return ` CRÍTICO: El registro ${record.codigo}${cliente} lleva ${daysAbs} días vencido. Requiere atención inmediata.`;
+
       case 'high':
         if (statusInfo.daysRemaining < 0) {
-          return `URGENTE: El registro ${record.codigo}${cliente} venció hace ${Math.abs(statusInfo.daysRemaining)} días`;
+          // 1-30 días vencido
+          return ` URGENTE: El registro ${record.codigo}${cliente} venció hace ${daysAbs} días`;
         } else if (statusInfo.daysRemaining === 0) {
-          return `ATENCIÓN: El registro ${record.codigo}${cliente} vence HOY`;
+          // Vence hoy
+          return ` ATENCIÓN: El registro ${record.codigo}${cliente} vence HOY`;
         } else {
-          return `URGENTE: El registro ${record.codigo}${cliente} vence en ${statusInfo.daysRemaining} días`;
+          // Vence en 1-7 días
+          return ` URGENTE: El registro ${record.codigo}${cliente} vence en ${statusInfo.daysRemaining} días`;
         }
+
       case 'medium':
-        return `AVISO: El registro ${record.codigo}${cliente} vence en ${statusInfo.daysRemaining} días`;
+        // Vence en 8-30 días
+        return ` AVISO: El registro ${record.codigo}${cliente} vence en ${statusInfo.daysRemaining} días`;
+
       default:
         return `El registro ${record.codigo}${cliente} requiere atención: ${statusInfo.message}`;
     }

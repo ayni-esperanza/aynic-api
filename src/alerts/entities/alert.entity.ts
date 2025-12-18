@@ -12,7 +12,6 @@ import { Record as RecordEntity } from '../../records/entities/record.entity';
 export enum AlertType {
   POR_VENCER = 'POR_VENCER',
   VENCIDO = 'VENCIDO',
-  CRITICO = 'CRITICO',
 }
 
 export enum AlertPriority {

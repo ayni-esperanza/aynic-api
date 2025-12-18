@@ -13,8 +13,8 @@ export class StatusCalculatorService {
   // Configuración de umbrales desde variables de entorno
   private readonly DAYS_TO_EXPIRE_WARNING =
     Number(process.env.DAYS_TO_EXPIRE_WARNING) || 30;
-  private readonly DAYS_TO_CRITICAL =
-    Number(process.env.DAYS_TO_CRITICAL) || 60;
+  private readonly DAYS_OVERDUE_CRITICAL =
+    Number(process.env.DAYS_OVERDUE_CRITICAL) || 30;
 
   /**
    * Calcula el estado de un registro basado en su fecha de caducidad
@@ -37,7 +37,7 @@ export class StatusCalculatorService {
     if (diffDays < 0) {
       return RecordStatus.VENCIDO; // Ya pasó la fecha
     } else if (diffDays <= this.DAYS_TO_EXPIRE_WARNING) {
-      return RecordStatus.POR_VENCER; // Falta 30 días o menos
+      return RecordStatus.POR_VENCER; // Faltan ≤30 días
     } else {
       return RecordStatus.ACTIVO; // Más de 30 días
     }
@@ -75,23 +75,39 @@ export class StatusCalculatorService {
     let message: string;
     let priority: 'low' | 'medium' | 'high' | 'critical';
 
+    // Lógica de prioridades mejorada
     if (diffDays < 0) {
+      // Registro vencido
       const daysOverdue = Math.abs(diffDays);
-      if (daysOverdue > this.DAYS_TO_CRITICAL) {
+
+      if (daysOverdue > this.DAYS_OVERDUE_CRITICAL) {
+        // Más de 30 días vencido → CRÍTICO
         message = `Vencido hace ${daysOverdue} días - CRÍTICO`;
         priority = 'critical';
+      } else if (daysOverdue > 7) {
+        // Entre 8-30 días vencido → HIGH
+        message = `Vencido hace ${daysOverdue} días - URGENTE`;
+        priority = 'high';
       } else {
+        // Hasta 7 días vencido → HIGH
         message = `Vencido hace ${daysOverdue} días`;
         priority = 'high';
       }
     } else if (diffDays === 0) {
-      message = 'Vence hoy';
+      // Vence hoy → HIGH
+      message = 'Vence HOY';
+      priority = 'high';
+    } else if (diffDays <= 7) {
+      // Próxima semana → HIGH
+      message = `Vence en ${diffDays} días`;
       priority = 'high';
     } else if (diffDays <= this.DAYS_TO_EXPIRE_WARNING) {
+      // Entre 8-30 días → MEDIUM
       message = `Vence en ${diffDays} días`;
-      priority = diffDays <= 7 ? 'high' : 'medium';
+      priority = 'medium';
     } else {
-      message = `Vence en ${diffDays} días`;
+      // Más de 30 días → LOW
+      message = `Activo - ${diffDays} días restantes`;
       priority = 'low';
     }
 
@@ -149,9 +165,6 @@ export class StatusCalculatorService {
             stats.criticos++;
           }
           break;
-        default:
-          // Manejar casos no esperados
-          break;
       }
     });
 
@@ -162,8 +175,6 @@ export class StatusCalculatorService {
    * Valida si una transición de estado es permitida
    */
   isValidStatusTransition(currentStatus: string, newStatus: string): boolean {
-    // Permitir cualquier transición manual por ahora
-    // En el futuro se pueden agregar reglas más estrictas
     const validStatuses = Object.values(RecordStatus) as string[];
     return validStatuses.includes(newStatus);
   }
@@ -172,8 +183,12 @@ export class StatusCalculatorService {
    * Log de información de configuración
    */
   logConfiguration(): void {
-    this.logger.log(`Configuración de Estados:`);
-    this.logger.log(`- Días para advertencia: ${this.DAYS_TO_EXPIRE_WARNING}`);
-    this.logger.log(`- Días para crítico: ${this.DAYS_TO_CRITICAL}`);
+    this.logger.log(`  Configuración de Estados:`);
+    this.logger.log(
+      `   - Días para "POR_VENCER": ${this.DAYS_TO_EXPIRE_WARNING}`,
+    );
+    this.logger.log(
+      `   - Días para "CRÍTICO" (vencido): ${this.DAYS_OVERDUE_CRITICAL}`,
+    );
   }
 }
