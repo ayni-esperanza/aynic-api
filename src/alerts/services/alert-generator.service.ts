@@ -121,6 +121,45 @@ export class AlertGeneratorService {
   }
 
   /**
+   * Job que limpia alertas leídas antiguas diariamente a las 02:00 AM
+   * Elimina alertas leídas con más de 1 día de antigüedad
+   */
+  @Cron('0 2 * * *')
+  async cleanOldReadAlerts(): Promise<void> {
+    if (!this.isEnabled) {
+      return;
+    }
+
+    this.logger.log('🧹 Iniciando limpieza automática de alertas leídas...');
+
+    try {
+      const startTime = Date.now();
+      const daysOld = 1; // Eliminar alertas leídas con más de 1 día
+
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+      const result = await this.alertRepository
+        .createQueryBuilder()
+        .delete()
+        .where('fecha_creada < :cutoffDate AND leida = :leida', {
+          cutoffDate,
+          leida: true,
+        })
+        .execute();
+
+      const deletedCount = result.affected || 0;
+      const duration = Date.now() - startTime;
+
+      this.logger.log(` Limpieza completada en ${duration}ms:`);
+      this.logger.log(`     Alertas eliminadas: ${deletedCount}`);
+      this.logger.log(`    Criterio: leídas con más de ${daysOld} día(s)`);
+    } catch (error) {
+      this.logger.error(' Error durante la limpieza de alertas:', error);
+    }
+  }
+
+  /**
    * Crear una alerta para un registro específico
    */
   private async createAlert(
